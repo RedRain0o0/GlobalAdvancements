@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "globaladvancements",
+  "version": "${version}",
+  "name": "Global Advancements",
+  "description": "A simple mod that unifies advancements across worlds!",
+  "authors": [],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/globaladvancements/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "io.github.redrain0o0.globaladvancements.client.GlobalAdvancementsClient"
+    ],
+    "main": [
+      "io.github.redrain0o0.globaladvancements.GlobalAdvancements"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
