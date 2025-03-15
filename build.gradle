@@ -22,11 +22,40 @@ loom {
 }
 
 repositories {
-    // Add repositories to retrieve artifacts from in here.
-    // You should only use this when depending on other mods because
-    // Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
-    // See https://docs.gradle.org/current/userguide/declaring_repositories.html
-    // for more information about repositories.
+    mavenCentral()
+    maven {
+        name = "Terraformers"
+        url = "https://maven.terraformersmc.com/"
+    }
+    maven {
+        url "https://maven.isxander.dev/releases"
+    }
+    maven {
+        name = 'Kyubion Mod Resources'
+        url "https://raw.githubusercontent.com/Kyubion-Studios/Mod-Resources/main/maven/"
+    }
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "Modrinth"
+                url = "https://api.modrinth.com/maven"
+            }
+        }
+        filter {
+            includeGroup "maven.modrinth"
+        }
+    }
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = "Kyubion Studios"
+                url = "https://raw.githubusercontent.com/Kyubion-Studios/Mod-Resources/refs/heads/main/maven/"
+            }
+        }
+        filter {
+            includeGroupAndSubgroups "wily"
+        }
+    }
 }
 
 dependencies {
@@ -36,6 +65,11 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
 
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+    modImplementation "wily.legacy:legacy-fabric:1.21.4-${project.legacy_version}"
+    modImplementation "wily.factory_api:factory_api-fabric:1.21.4-${project.factory_api_version}"
+    modImplementation "teamreborn:energy:${project.reborn_energy_version}"
+    modCompileOnly "com.terraformersmc:modmenu:7.2.2"
+    localRuntime "dev.isxander:libsdl4j:3.preview-3.1.3-46"
 }
 
 processResources {
