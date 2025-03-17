@@ -3,3 +3,27 @@ Add advancement group to json
 Make Cache json
 Make Unlocked json
 display Cache and Unlocked json contents on AdvancementScreen
+
+
+{
+  "namespace:group": {
+    "name": "<translation_key>",
+    "background": "<png_path>",
+    "advancements": {
+      "namespace:advancement": {
+        "name": "<translation_key>",
+        "description": "<translation_key>",
+        "icon": {
+          "item": "namespace:item",
+          "nbt": {...}
+        }
+      }
+    }
+  }
+}
+
+
+
+[
+  "namespace:advancement"
+]

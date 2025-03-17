@@ -1,14 +1,10 @@
 package io.github.redrain0o0.globaladvancements.client.screens;
 
 import com.mojang.blaze3d.platform.InputConstants;
-import com.mojang.blaze3d.systems.RenderSystem;
-import net.minecraft.advancements.AdvancementNode;
 import net.minecraft.advancements.DisplayInfo;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
-import wily.factoryapi.FactoryAPI;
 import wily.factoryapi.base.client.FactoryGuiGraphics;
 import wily.factoryapi.base.Stocker;
 import wily.factoryapi.util.PagedList;
@@ -21,12 +17,9 @@ import wily.legacy.util.LegacySprites;
 import wily.legacy.util.ScreenUtil;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.stream.StreamSupport;
 
 import static wily.legacy.client.screen.ControlTooltip.COMPOUND_ICON_FUNCTION;
-import static wily.legacy.client.screen.LegacyAdvancementsScreen.getActualAdvancements;
 
 
 public class AdvancementsScreen extends PanelVListScreen implements TabList.Access {
@@ -36,8 +29,8 @@ public class AdvancementsScreen extends PanelVListScreen implements TabList.Acce
     protected final TabList tabList = new TabList(new PagedList<>(page,10));
     protected final List<DisplayInfo> displayInfos = new ArrayList<>();
     protected boolean showDescription = false;
-    protected boolean oldLegacyTooltipsValue;
-    public static final List<ResourceLocation> vanillaOrder = List.of(FactoryAPI.createVanillaLocation("story/root"),FactoryAPI.createVanillaLocation("adventure/root"), FactoryAPI.createVanillaLocation("husbandry/root"),FactoryAPI.createVanillaLocation("nether/root"),FactoryAPI.createVanillaLocation("end/root"));
+    //protected boolean oldLegacyTooltipsValue;
+    //public static final List<ResourceLocation> vanillaOrder = List.of(FactoryAPI.createVanillaLocation("story/root"),FactoryAPI.createVanillaLocation("adventure/root"), FactoryAPI.createVanillaLocation("husbandry/root"),FactoryAPI.createVanillaLocation("nether/root"),FactoryAPI.createVanillaLocation("end/root"));
 
     public AdvancementsScreen(Screen parent) {
         super(parent,s-> Panel.createPanel(s, p-> p.centeredLeftPos(s), p-> p.centeredTopPos(s) + (((AdvancementsScreen)s).displayInfos.isEmpty() ? 0 : 18), 450,252),TITLE);
@@ -59,8 +52,24 @@ public class AdvancementsScreen extends PanelVListScreen implements TabList.Acce
         ScreenUtil.renderDefaultBackground(accessor, guiGraphics, false);
     }
 
-    protected void addAdvancementButton(RenderableVList renderableVList, AdvancementNode advancementNode){
+    /*protected void addAdvancementButton(RenderableVList renderableVList, AdvancementNode advancementNode){
         advancementNode.advancement().display().ifPresent(info-> renderableVList.addRenderable(new LegacyAdvancementsScreen.AdvancementButton(0,0,38,38,advancementNode,info)));
+    }*/
+
+    /*@Override
+    protected void renderWidget(GuiGraphics guiGraphics, int i, int j, float f) {
+        RenderSystem.enableBlend();
+    }*/
+
+    @Override
+    protected void panelInit() {
+        addRenderableWidget(tabList);
+        super.panelInit();
+        addRenderableOnly(((guiGraphics, i, j, f) ->{
+            guiGraphics.drawString(font,showDescription && !tabList.tabButtons.isEmpty() ? tabList.tabButtons.get(tabList.selectedTab).getMessage() : getTitle(),panel.x + (panel.width - font.width(showDescription && !tabList.tabButtons.isEmpty() ? tabList.tabButtons.get(tabList.selectedTab).getMessage() : getTitle()))/ 2,panel.y + 10, CommonColor.INVENTORY_GRAY_TEXT.get(),false);
+            ScreenUtil.renderPanelTranslucentRecess(guiGraphics,panel.x + 12, panel.y + 22, 426, 27);
+            FactoryGuiGraphics.of(guiGraphics).blitSprite(LegacySprites.PANEL_RECESS,panel.x + 12, panel.y + 50, 426, 186);
+        }));
     }
 
     @Override

@@ -1,0 +1,12 @@
+{
+  "targetType": "class",
+  "targetUI": "wily.legacy.client.screen.LegacyAdvancementsScreen",
+  "elements": {
+    "youShouldntBeHere": {
+      "type": "draw_string",
+      "component": "You shouldn't be here...",
+      "x": "${width}/2-${youShouldntBeHere.component.width}/2",
+      "y": "${height}/2"
+    }
+  }
+}
