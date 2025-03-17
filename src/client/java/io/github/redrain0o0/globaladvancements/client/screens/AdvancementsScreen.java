@@ -1,20 +1,31 @@
 package io.github.redrain0o0.globaladvancements.client.screens;
 
+import com.mojang.blaze3d.platform.InputConstants;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.advancements.AdvancementNode;
 import net.minecraft.advancements.DisplayInfo;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import wily.factoryapi.FactoryAPI;
+import wily.factoryapi.base.client.FactoryGuiGraphics;
 import wily.factoryapi.base.Stocker;
 import wily.factoryapi.util.PagedList;
+import wily.legacy.client.CommonColor;
+import wily.legacy.client.ControlType;
+import wily.legacy.client.controller.ControllerBinding;
 import wily.legacy.client.screen.*;
+import wily.legacy.util.LegacyComponents;
+import wily.legacy.util.LegacySprites;
+import wily.legacy.util.ScreenUtil;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.StreamSupport;
 
+import static wily.legacy.client.screen.ControlTooltip.COMPOUND_ICON_FUNCTION;
 import static wily.legacy.client.screen.LegacyAdvancementsScreen.getActualAdvancements;
 
 
@@ -43,6 +54,11 @@ public class AdvancementsScreen extends PanelVListScreen implements TabList.Acce
         });*/
     }
 
+    @Override
+    public void renderDefaultBackground(GuiGraphics guiGraphics, int i, int j, float f) {
+        ScreenUtil.renderDefaultBackground(accessor, guiGraphics, false);
+    }
+
     protected void addAdvancementButton(RenderableVList renderableVList, AdvancementNode advancementNode){
         advancementNode.advancement().display().ifPresent(info-> renderableVList.addRenderable(new LegacyAdvancementsScreen.AdvancementButton(0,0,38,38,advancementNode,info)));
     }
@@ -55,5 +71,53 @@ public class AdvancementsScreen extends PanelVListScreen implements TabList.Acce
     @Override
     public RenderableVList getRenderableVList() {
         return getRenderableVLists().get(tabList.selectedTab);
+    }
+
+    /*@Override
+    protected void panelInit() {
+        addRenderableWidget(tabList);
+        super.panelInit();
+        addRenderableOnly(((guiGraphics, i, j, f) ->{
+            guiGraphics.drawString(font,showDescription && !tabList.tabButtons.isEmpty() ? tabList.tabButtons.get(tabList.selectedTab).getMessage() : getTitle(),panel.x + (panel.width - font.width(showDescription && !tabList.tabButtons.isEmpty() ? tabList.tabButtons.get(tabList.selectedTab).getMessage() : getTitle()))/ 2,panel.y + 10, CommonColor.INVENTORY_GRAY_TEXT.get(),false);
+            if (!displayInfos.isEmpty()) {
+                ResourceLocation background = displayInfos.get(tabList.selectedTab).getBackground().orElse(null);
+                if (background != null) FactoryGuiGraphics.of(guiGraphics).blit(background,panel.x + 14, panel.y + 24,0,0,422,23,16,16);
+            }
+            ScreenUtil.renderPanelTranslucentRecess(guiGraphics,panel.x + 12, panel.y + 22, 426, 27);
+            if (getFocused() instanceof LegacyAdvancementsScreen.AdvancementButton a) guiGraphics.drawString(font,a.info.getTitle(),panel.x + (panel.width - font.width(a.info.getTitle()))/ 2,panel.y + 32,0xFFFFFF);
+            RenderSystem.disableBlend();
+            FactoryGuiGraphics.of(guiGraphics).blitSprite(LegacySprites.PANEL_RECESS,panel.x + 12, panel.y + 50, 426, 186);
+        }));
+        tabList.init(panel.x,panel.y - 37,panel.width,(b,i)->{
+            int index = tabList.tabButtons.indexOf(b);
+            b.type = index == 0 ? 0 : index >= 9 ? 2 : 1;
+            b.setWidth(45);
+            b.offset = (t1) -> new Vec3(0, t1.selected ? 0 : 4.5, 0);
+        });
+    }*/
+
+    @Override
+    public void renderableVListInit() {
+        getRenderableVList().init(panel.x + 17, panel.y + 55, 416,176);
+    }
+
+    //@Override
+    //public boolean keyPressed(int i, int j, int k) {
+    //    if (i == InputConstants.KEY_X){
+    //        showDescription = !showDescription;
+    //        return true;
+    //    }
+    //    if (tabList.controlTab(i)) return true;
+    //    if (hasShiftDown()) tabList.controlPage(page,i == 263 , i == 262);
+    //    return super.keyPressed(i, j, k);
+    //}
+
+    @Override
+    public void addControlTooltips(ControlTooltip.Renderer renderer) {
+        super.addControlTooltips(renderer);
+        renderer.tooltips.remove(0);
+        renderer.
+                add(ControlTooltip.EXTRA::get,()-> LegacyComponents.SHOW_DESCRIPTION).
+                add(()-> page.max > 0 ? ControlType.getActiveType().isKbm() ? COMPOUND_ICON_FUNCTION.apply(new ControlTooltip.Icon[]{ControlTooltip.getKeyIcon(InputConstants.KEY_LSHIFT),ControlTooltip.PLUS_ICON,ControlTooltip.getKeyIcon(InputConstants.KEY_LEFT),ControlTooltip.SPACE_ICON,ControlTooltip.getKeyIcon(InputConstants.KEY_RIGHT)}) : ControllerBinding.RIGHT_STICK.bindingState.getIcon() : null,()->LegacyComponents.PAGE);
     }
 }

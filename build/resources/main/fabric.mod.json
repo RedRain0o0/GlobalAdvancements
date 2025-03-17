@@ -15,6 +15,9 @@
     ],
     "main": [
       "io.github.redrain0o0.globaladvancements.GlobalAdvancements"
+    ],
+    "modmenu": [
+      "io.github.redrain0o0.globaladvancements.client.screens.ModMenuCompat"
     ]
   },
   "depends": {

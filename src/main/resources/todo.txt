@@ -1,0 +1,5 @@
+Add advancement <namespace:id> translation key and icon to json
+Add advancement group to json
+Make Cache json
+Make Unlocked json
+display Cache and Unlocked json contents on AdvancementScreen

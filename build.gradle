@@ -66,9 +66,9 @@ dependencies {
 
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
     modImplementation "wily.legacy:legacy-fabric:1.21.4-${project.legacy_version}"
-    modImplementation "wily.factory_api:factory_api-fabric:1.21.4-${project.factory_api_version}"
+    //modImplementation "wily.factory_api:factory_api-fabric:1.21.4-${project.factory_api_version}"
     modImplementation "teamreborn:energy:${project.reborn_energy_version}"
-    modCompileOnly "com.terraformersmc:modmenu:7.2.2"
+    modImplementation "com.terraformersmc:modmenu:7.2.2"
     localRuntime "dev.isxander:libsdl4j:3.preview-3.1.3-46"
 }
 
