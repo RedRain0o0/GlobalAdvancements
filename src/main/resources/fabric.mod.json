@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "id": "globaladvancements",
+  "version": "${version}",
+  "name": "GlobalAdvancements",
+  "description": "Bedrock/LCE style advancements for Minecraft Java",
+  "authors": [],
+  "contact": {},
+  "license": "MIT",
+  "icon": "assets/globaladvancements/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "client": [
+      "io.github.redrain0o0.globaladvancements.client.GlobaladvancementsClient"
+    ],
+    "main": [
+      "io.github.redrain0o0.globaladvancements.Globaladvancements"
+    ]
+  },
+  "mixins": [
+    "globaladvancements.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}"
+  }
+}
