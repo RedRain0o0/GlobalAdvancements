@@ -1,0 +1,15 @@
+{
+  "parent": "minecraft:story/form_obsidian",
+  "display": {
+    "description": {
+      "translate": "advancements.story.enter_the_nether.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "minecraft:flint_and_steel"
+    },
+    "title": {
+      "translate": "advancements.story.enter_the_nether.title"
+    }
+  }
+}

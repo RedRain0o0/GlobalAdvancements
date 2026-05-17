@@ -1,0 +1,15 @@
+{
+  "parent": "minecraft:story/follow_ender_eye",
+  "display": {
+    "description": {
+      "translate": "advancements.story.enter_the_end.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "minecraft:end_stone"
+    },
+    "title": {
+      "translate": "advancements.story.enter_the_end.title"
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "background": "minecraft:gui/advancements/backgrounds/stone",
+  "display": {
+    "description": {
+      "translate": "advancements.story.root.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "minecraft:grass_block"
+    },
+    "title": {
+      "translate": "advancements.story.root.title"
+    }
+  }
+}

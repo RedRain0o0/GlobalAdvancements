@@ -1,0 +1,15 @@
+{
+  "parent": "minecraft:husbandry/root",
+  "display": {
+    "description": {
+      "translate": "advancements.husbandry.safely_harvest_honey.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "minecraft:honey_bottle"
+    },
+    "title": {
+      "translate": "advancements.husbandry.safely_harvest_honey.title"
+    }
+  }
+}

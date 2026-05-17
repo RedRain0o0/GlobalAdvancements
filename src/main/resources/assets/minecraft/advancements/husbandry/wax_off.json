@@ -1,0 +1,15 @@
+{
+  "parent": "minecraft:husbandry/wax_on",
+  "display": {
+    "description": {
+      "translate": "advancements.husbandry.wax_off.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "minecraft:stone_axe"
+    },
+    "title": {
+      "translate": "advancements.husbandry.wax_off.title"
+    }
+  }
+}

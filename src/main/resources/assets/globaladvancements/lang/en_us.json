@@ -1,0 +1,5 @@
+{
+  "gui.globaladvancements.startGame": "Start Game",
+  "gui.globaladvancements.hostPrivileges": "If you create, load or save a world with Cheats enabled, that world will have advancements disabled, even if it is then loaded with Cheats disabled. Are you sure you want to continue?",
+  "gui.globaladvancements.creativeMode": "If you create, load or save a world in Creative Mode, that world will have advancements disabled, even if it is then loaded in Survival Mode. Are you sure you want to continue?"
+}

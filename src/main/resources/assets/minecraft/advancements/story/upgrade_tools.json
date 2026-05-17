@@ -1,0 +1,15 @@
+{
+  "parent": "minecraft:story/mine_stone",
+  "display": {
+    "description": {
+      "translate": "advancements.story.upgrade_tools.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "minecraft:stone_pickaxe"
+    },
+    "title": {
+      "translate": "advancements.story.upgrade_tools.title"
+    }
+  }
+}

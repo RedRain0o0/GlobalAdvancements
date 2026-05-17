@@ -1,0 +1,15 @@
+{
+  "parent": "minecraft:story/lava_bucket",
+  "display": {
+    "description": {
+      "translate": "advancements.story.form_obsidian.description"
+    },
+    "icon": {
+      "count": 1,
+      "id": "minecraft:obsidian"
+    },
+    "title": {
+      "translate": "advancements.story.form_obsidian.title"
+    }
+  }
+}
