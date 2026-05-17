@@ -1,0 +1,2 @@
+## Global Advancements
+Lorem ipsum
