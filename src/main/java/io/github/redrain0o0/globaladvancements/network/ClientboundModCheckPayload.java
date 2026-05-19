@@ -10,7 +10,7 @@ import net.minecraft.resources.Identifier;
 public record ClientboundModCheckPayload(boolean unused) implements CustomPacketPayload {
     public static final Identifier MOD_CHECK_PAYLOAD_ID = Globaladvancements.createId("mod_check_clientbound");
     public static final CustomPacketPayload.Type<ClientboundModCheckPayload> TYPE = new CustomPacketPayload.Type<>(MOD_CHECK_PAYLOAD_ID);
-    public static final StreamCodec<RegistryFriendlyByteBuf, ClientboundModCheckPayload> CODEC = StreamCodec.composite(
+    public static final StreamCodec<RegistryFriendlyByteBuf, ClientboundModCheckPayload> STREAM_CODEC = StreamCodec.composite(
             ByteBufCodecs.BOOL,
             ClientboundModCheckPayload::unused,
             ClientboundModCheckPayload::new);
