@@ -1,11 +1,12 @@
 package io.github.redrain0o0.globaladvancements.client;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import io.github.redrain0o0.globaladvancements.Globaladvancements;
 import io.github.redrain0o0.globaladvancements.client.advancements.ClientAdvancement;
+import io.github.redrain0o0.globaladvancements.network.ClientboundAdvancementHolderIdPayload;
 import io.github.redrain0o0.globaladvancements.network.ClientboundModCheckPayload;
 import io.github.redrain0o0.globaladvancements.network.ServerboundModCheckPayload;
+import io.github.redrain0o0.globaladvancements.network.ServerboundVerifyAdvancementPayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -34,6 +35,10 @@ public class GlobaladvancementsClient implements ClientModInitializer {
         });
 
         ClientPlayNetworking.registerGlobalReceiver(ClientboundModCheckPayload.TYPE, (payload, context) -> Globaladvancements.LOGGER.info("Test"));
+        ClientPlayNetworking.registerGlobalReceiver(ClientboundAdvancementHolderIdPayload.TYPE, (payload, context) -> {
+            Globaladvancements.LOGGER.info("Server asked if we have '{}'", payload.advancementHolderId());
+            ClientPlayNetworking.send(new ServerboundVerifyAdvancementPayload(payload.advancementHolderId(), false));
+        });
     }
 
     private static void fileInitializer(GACFile file) {
