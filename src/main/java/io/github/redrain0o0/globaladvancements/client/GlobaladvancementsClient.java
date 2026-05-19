@@ -1,6 +1,9 @@
 package io.github.redrain0o0.globaladvancements.client;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import io.github.redrain0o0.globaladvancements.Globaladvancements;
+import io.github.redrain0o0.globaladvancements.client.advancements.ClientAdvancement;
 import io.github.redrain0o0.globaladvancements.network.ClientboundModCheckPayload;
 import io.github.redrain0o0.globaladvancements.network.ServerboundModCheckPayload;
 import net.fabricmc.api.ClientModInitializer;
@@ -9,19 +12,21 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.List;
 
 public class GlobaladvancementsClient implements ClientModInitializer {
-    private static final String ADVANCEMENTS_FILE = Minecraft.getInstance().gameDirectory.getAbsolutePath()+"/advancements.json";
-    private static final String STATS_FILE = Minecraft.getInstance().gameDirectory.getAbsolutePath()+"/stats.json";
-    private static final String CONFIG_FILE = Minecraft.getInstance().gameDirectory.getAbsolutePath()+"/config/globaladvancements.json";
+    private static final Gson gson = new Gson();
     private static boolean serverHasMod = false;
 
     @Override
     public void onInitializeClient() {
-        fileReadWriter(ADVANCEMENTS_FILE);
-        fileReadWriter(STATS_FILE);
-        fileReadWriter(CONFIG_FILE);
+        fileInitializer(GACFile.ADVANCEMENTS_FILE);
+        //fileInitializer(GACFile.STATS_FILE);
+        fileInitializer(GACFile.CONFIG_FILE);
 
         ClientPlayConnectionEvents.JOIN.register((clientPacketListener, packetSender, minecraft) -> {
             serverHasMod = ClientPlayNetworking.canSend(ServerboundModCheckPayload.TYPE);
@@ -31,17 +36,46 @@ public class GlobaladvancementsClient implements ClientModInitializer {
         ClientPlayNetworking.registerGlobalReceiver(ClientboundModCheckPayload.TYPE, (payload, context) -> Globaladvancements.LOGGER.info("Test"));
     }
 
-    private static void fileReadWriter(String file) {
+    private static void fileInitializer(GACFile file) {
         try {
-            File file1 = new File(file);
-            if (!file1.createNewFile()) {
-                Globaladvancements.LOGGER.info("didn't Created new config file");
-            } else {
-                Globaladvancements.LOGGER.info("Created new config file");
+            File file1 = new File(file.getPath());
+            if (file1.createNewFile()) {
+                switch (file) {
+                    case ADVANCEMENTS_FILE -> {
+                        Globaladvancements.LOGGER.info("Write default advancements file");
+                        try (Writer writer = new FileWriter(file.getPath())) {
+                            List<ClientAdvancement> advancements = new ArrayList<>();
+                            gson.toJson(new AdvancementsFile(advancements, 4790), writer);
+                        }
+                    }
+                    case STATS_FILE -> {} // Unused, reevaluate once creepers done his stats thing
+                    case CONFIG_FILE -> {
+                        Globaladvancements.LOGGER.info("Write default config file");
+                    }
+                }
             }
         } catch (IOException e) {
             Globaladvancements.LOGGER.error(e.getMessage());
         }
+    }
+
+    private enum GACFile {
+        ADVANCEMENTS_FILE("/advancements.json"),
+        STATS_FILE("/stats.json"),
+        CONFIG_FILE("/config/globaladvancements.json");
+
+        private String path;
+
+
+        private GACFile(String path) {
+            this.path = Minecraft.getInstance().gameDirectory.getAbsolutePath()+path;
+
+        }
+
+        public String getPath() {
+            return path;
+        }
+
     }
 
     public static boolean doesServerHaveMod() {
