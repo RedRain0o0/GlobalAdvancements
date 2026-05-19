@@ -6,6 +6,8 @@
   "mixins": [
   ],
   "client": [
+    "client.AdvancementsScreenMixin",
+    "client.TitleScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1
