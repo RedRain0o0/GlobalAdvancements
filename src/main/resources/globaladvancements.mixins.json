@@ -7,7 +7,7 @@
   "package": "io.github.redrain0o0.globaladvancements.mixin",
   "compatibilityLevel": "JAVA_25",
   "mixins": [
-    "PlayerAdvancementMixin"
+    "PlayerAdvancementsMixin"
   ],
   "client": [
     "client.AdvancementsScreenMixin",
