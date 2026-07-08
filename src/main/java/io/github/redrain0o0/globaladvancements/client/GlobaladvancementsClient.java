@@ -3,6 +3,7 @@ package io.github.redrain0o0.globaladvancements.client;
 import com.google.gson.Gson;
 import io.github.redrain0o0.globaladvancements.Globaladvancements;
 import io.github.redrain0o0.globaladvancements.client.advancements.ClientAdvancement;
+import io.github.redrain0o0.globaladvancements.client.advancements.ClientAdvancementManager;
 import io.github.redrain0o0.globaladvancements.network.ClientboundAdvancementHolderIdPayload;
 import io.github.redrain0o0.globaladvancements.network.ClientboundModCheckPayload;
 import io.github.redrain0o0.globaladvancements.network.ServerboundModCheckPayload;
@@ -10,7 +11,9 @@ import io.github.redrain0o0.globaladvancements.network.ServerboundVerifyAdvancem
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.minecraft.client.Minecraft;
+import net.minecraft.server.packs.PackType;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -25,6 +28,8 @@ public class GlobaladvancementsClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        ResourceManagerHelper.get(PackType.CLIENT_RESOURCES).registerReloadListener(ClientAdvancementManager.INSTANCE);
+
         fileInitializer(GACFile.ADVANCEMENTS_FILE);
         //fileInitializer(GACFile.STATS_FILE);
         fileInitializer(GACFile.CONFIG_FILE);
