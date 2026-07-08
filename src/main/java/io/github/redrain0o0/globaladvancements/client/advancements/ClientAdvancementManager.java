@@ -65,6 +65,10 @@ public class ClientAdvancementManager implements SimpleSynchronousResourceReload
         return ADVANCEMENTS.values();
     }
 
+    public static List<Identifier> advancementIds() {
+        return List.copyOf(ADVANCEMENTS.keySet());
+    }
+
     public static List<ClientAdvancement> roots() {
         return ROOTS;
     }

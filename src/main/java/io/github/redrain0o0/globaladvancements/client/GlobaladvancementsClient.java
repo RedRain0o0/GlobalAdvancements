@@ -5,6 +5,7 @@ import io.github.redrain0o0.globaladvancements.client.advancements.ClientAdvance
 import io.github.redrain0o0.globaladvancements.client.advancements.ClientProgressManager;
 import io.github.redrain0o0.globaladvancements.network.ClientboundAdvancementHolderIdPayload;
 import io.github.redrain0o0.globaladvancements.network.ClientboundModCheckPayload;
+import io.github.redrain0o0.globaladvancements.network.ServerboundKnownAdvancementsPayload;
 import io.github.redrain0o0.globaladvancements.network.ServerboundModCheckPayload;
 import io.github.redrain0o0.globaladvancements.network.ServerboundVerifyAdvancementPayload;
 import net.fabricmc.api.ClientModInitializer;
@@ -32,6 +33,9 @@ public class GlobaladvancementsClient implements ClientModInitializer {
         ClientPlayConnectionEvents.JOIN.register((clientPacketListener, packetSender, minecraft) -> {
             serverHasMod = ClientPlayNetworking.canSend(ServerboundModCheckPayload.TYPE);
             Globaladvancements.LOGGER.info(serverHasMod ? "Server has "+Globaladvancements.MOD_NAME+" installed" : "Server doesn't have "+Globaladvancements.MOD_NAME+" installed");
+            if (serverHasMod) {
+                ClientPlayNetworking.send(new ServerboundKnownAdvancementsPayload(ClientAdvancementManager.advancementIds()));
+            }
         });
 
         ClientPlayNetworking.registerGlobalReceiver(ClientboundModCheckPayload.TYPE, (payload, context) -> Globaladvancements.LOGGER.info("Test"));
