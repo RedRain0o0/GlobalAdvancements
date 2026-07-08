@@ -1,8 +1,6 @@
 package io.github.redrain0o0.globaladvancements.client;
 
-import com.google.gson.Gson;
 import io.github.redrain0o0.globaladvancements.Globaladvancements;
-import io.github.redrain0o0.globaladvancements.client.advancements.ClientAdvancement;
 import io.github.redrain0o0.globaladvancements.client.advancements.ClientAdvancementManager;
 import io.github.redrain0o0.globaladvancements.client.advancements.ClientProgressManager;
 import io.github.redrain0o0.globaladvancements.network.ClientboundAdvancementHolderIdPayload;
@@ -17,14 +15,9 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.server.packs.PackType;
 
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.List;
 
 public class GlobaladvancementsClient implements ClientModInitializer {
-    private static final Gson gson = new Gson();
     private static boolean serverHasMod = false;
 
     @Override
@@ -44,6 +37,7 @@ public class GlobaladvancementsClient implements ClientModInitializer {
         ClientPlayNetworking.registerGlobalReceiver(ClientboundModCheckPayload.TYPE, (payload, context) -> Globaladvancements.LOGGER.info("Test"));
         ClientPlayNetworking.registerGlobalReceiver(ClientboundAdvancementHolderIdPayload.TYPE, (payload, context) -> {
             Globaladvancements.LOGGER.info("Server asked if we have '{}'", payload.advancementHolderId());
+            ClientProgressManager.completeCriterion(payload.criterion());
             boolean hasAdvancement = ClientAdvancementManager.get(payload.advancementHolderId())
                     .map(ClientProgressManager::isComplete)
                     .orElse(false);
@@ -58,10 +52,7 @@ public class GlobaladvancementsClient implements ClientModInitializer {
                 switch (file) {
                     case ADVANCEMENTS_FILE -> {
                         Globaladvancements.LOGGER.info("Write default advancements file");
-                        try (Writer writer = new FileWriter(file.getPath())) {
-                            List<ClientAdvancement> advancements = new ArrayList<>();
-                            gson.toJson(new AdvancementsFile(advancements, 4790), writer);
-                        }
+                        ClientProgressManager.save();
                     }
                     case STATS_FILE -> {} // Unused, reevaluate once creepers done his stats thing
                     case CONFIG_FILE -> {

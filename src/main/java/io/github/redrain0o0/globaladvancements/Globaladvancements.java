@@ -17,7 +17,6 @@ import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.gamerules.GameRules;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,12 +71,14 @@ public class Globaladvancements implements ModInitializer {
         ServerTickEvents.END_SERVER_TICK.register((minecraftServer) -> {
             if (criterion.isEmpty()) return;
             for (Map.Entry<UUID, Map<Identifier, List<String>>> playerPair : criterion.entrySet()) {
-                Player player = minecraftServer.getPlayerList().getPlayer(playerPair.getKey());
-                if (player == null) return;
-                LOGGER.info("duighfijuhdfjiosdiohdagjksdagjklrasgikojadsgjnfadg");
-                //ServerPlayNetworking.send(player, new ClientboundAdvancementHolderIdPayload(advancementHolder.id()/*, criterion*/));
-
-                //for (Map.Entry<Identifier, List<String>> advancementPair : playerPair.getValue().entrySet()) {}
+                ServerPlayer player = minecraftServer.getPlayerList().getPlayer(playerPair.getKey());
+                if (player == null || !player.getAttachedOrElse(HAS_MOD, false)) continue;
+                for (Map.Entry<Identifier, List<String>> advancementPair : playerPair.getValue().entrySet()) {
+                    for (String criterionName : advancementPair.getValue()) {
+                        queriedAdvancements.add(new Pair<>(player.getUUID(), advancementPair.getKey()));
+                        ServerPlayNetworking.send(player, new ClientboundAdvancementHolderIdPayload(advancementPair.getKey(), criterionName));
+                    }
+                }
             }
             criterion.clear();
         });
