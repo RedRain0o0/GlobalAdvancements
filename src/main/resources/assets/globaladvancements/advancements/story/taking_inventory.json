@@ -1,0 +1,17 @@
+{
+  "parent": "minecraft:story/root",
+  "display": {
+    "description": {
+      "translate": "advancements.globaladvancements.story.taking_inventory.description"
+    },
+    "icon": {
+      "id": "minecraft:chest"
+    },
+    "title": {
+      "translate": "advancements.globaladvancements.story.taking_inventory.title"
+    }
+  },
+  "criterion": [
+    "globaladvancements:taking_inventory"
+  ]
+}

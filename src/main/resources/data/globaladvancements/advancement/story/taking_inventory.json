@@ -1,0 +1,12 @@
+{
+  "criteria": {
+    "open_inventory": {
+      "trigger": "globaladvancements:open_inventory"
+    }
+  },
+  "requirements": [
+    [
+      "open_inventory"
+    ]
+  ]
+}

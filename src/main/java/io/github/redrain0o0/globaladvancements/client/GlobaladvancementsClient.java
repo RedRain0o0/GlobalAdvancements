@@ -4,6 +4,7 @@ import io.github.redrain0o0.globaladvancements.Globaladvancements;
 import io.github.redrain0o0.globaladvancements.client.advancements.ClientAdvancementManager;
 import io.github.redrain0o0.globaladvancements.client.advancements.ClientCriterionManager;
 import io.github.redrain0o0.globaladvancements.client.advancements.ClientProgressManager;
+import io.github.redrain0o0.globaladvancements.client.criterion.OpenInventoryCriterionClient;
 import io.github.redrain0o0.globaladvancements.network.ClientboundAdvancementHolderIdPayload;
 import io.github.redrain0o0.globaladvancements.network.ClientboundModCheckPayload;
 import io.github.redrain0o0.globaladvancements.network.ServerboundCriterionMappingsPayload;
@@ -31,6 +32,7 @@ public class GlobaladvancementsClient implements ClientModInitializer {
         //fileInitializer(GACFile.STATS_FILE);
         fileInitializer(GACFile.CONFIG_FILE);
         ClientProgressManager.load();
+        OpenInventoryCriterionClient.initialize();
 
         ClientPlayConnectionEvents.JOIN.register((clientPacketListener, packetSender, minecraft) -> {
             serverHasMod = ClientPlayNetworking.canSend(ServerboundModCheckPayload.TYPE);

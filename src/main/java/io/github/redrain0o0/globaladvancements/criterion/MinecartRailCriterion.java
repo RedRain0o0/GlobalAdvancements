@@ -1,4 +1,4 @@
-package io.github.redrain0o0.globaladvancements.advancements;
+package io.github.redrain0o0.globaladvancements.criterion;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;

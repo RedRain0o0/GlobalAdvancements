@@ -1,12 +1,13 @@
 package io.github.redrain0o0.globaladvancements;
 
 import com.mojang.datafixers.util.Pair;
-import io.github.redrain0o0.globaladvancements.advancements.GACriteriaTriggers;
+import io.github.redrain0o0.globaladvancements.criterion.GACriteriaTriggers;
 import io.github.redrain0o0.globaladvancements.network.ClientboundAdvancementHolderIdPayload;
 import io.github.redrain0o0.globaladvancements.network.ClientboundModCheckPayload;
 import io.github.redrain0o0.globaladvancements.network.ServerboundCriterionMappingsPayload;
 import io.github.redrain0o0.globaladvancements.network.ServerboundCriterionMappingsPayload.CriterionMapping;
 import io.github.redrain0o0.globaladvancements.network.ServerboundModCheckPayload;
+import io.github.redrain0o0.globaladvancements.network.ServerboundOpenInventoryPayload;
 import io.github.redrain0o0.globaladvancements.network.ServerboundVerifyAdvancementPayload;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
@@ -45,9 +46,11 @@ public class Globaladvancements implements ModInitializer {
         PayloadTypeRegistry.clientboundPlay().register(ClientboundAdvancementHolderIdPayload.TYPE, ClientboundAdvancementHolderIdPayload.STREAM_CODEC);
         PayloadTypeRegistry.serverboundPlay().register(ServerboundCriterionMappingsPayload.TYPE, ServerboundCriterionMappingsPayload.STREAM_CODEC);
         PayloadTypeRegistry.serverboundPlay().register(ServerboundModCheckPayload.TYPE, ServerboundModCheckPayload.STREAM_CODEC);
+        PayloadTypeRegistry.serverboundPlay().register(ServerboundOpenInventoryPayload.TYPE, ServerboundOpenInventoryPayload.STREAM_CODEC);
         PayloadTypeRegistry.serverboundPlay().register(ServerboundVerifyAdvancementPayload.TYPE, ServerboundVerifyAdvancementPayload.STREAM_CODEC);
 
         ServerPlayNetworking.registerGlobalReceiver(ServerboundModCheckPayload.TYPE, (payload, context) -> LOGGER.info("You shouldn't see this I dont think... The ModCheck packet is not for use, only checking"));
+        ServerPlayNetworking.registerGlobalReceiver(ServerboundOpenInventoryPayload.TYPE, (payload, context) -> GACriteriaTriggers.OPEN_INVENTORY.trigger(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(ServerboundCriterionMappingsPayload.TYPE, (payload, context) -> {
             clientCriteria.put(context.player().getUUID(), List.copyOf(payload.criteria()));
             LOGGER.info("Client has {} client advancement criteria loaded", payload.criteria().size());
