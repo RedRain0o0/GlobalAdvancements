@@ -7,6 +7,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.redrain0o0.globaladvancements.Globaladvancements;
 import net.minecraft.client.Minecraft;
+import net.minecraft.resources.Identifier;
 
 import java.io.File;
 import java.io.FileReader;
@@ -14,31 +15,40 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class ClientProgressManager {
     private static final Gson GSON = new Gson();
-    private static final Set<String> completedCriteria = new LinkedHashSet<>();
+    private static final Map<Identifier, Set<String>> completedCriteria = new LinkedHashMap<>();
 
     public static void load() {
         completedCriteria.clear();
 
-        JsonElement criteria = readFile().get("completed_criteria");
+        JsonObject advancements = readFile().getAsJsonObject("completed_criteria");
 
-        if (criteria == null || !criteria.isJsonArray()) {
+        if (advancements == null) {
             save();
             return;
         }
 
-        for (JsonElement criterion : criteria.getAsJsonArray()) {
-            completedCriteria.add(criterion.getAsString());
+        int criteriaCount = 0;
+        for (Map.Entry<String, JsonElement> advancement : advancements.entrySet()) {
+            if (!advancement.getValue().isJsonArray()) continue;
+
+            Set<String> criteria = completedCriteria.computeIfAbsent(Identifier.parse(advancement.getKey()), id -> new LinkedHashSet<>());
+            for (JsonElement criterion : advancement.getValue().getAsJsonArray()) {
+                if (criteria.add(criterion.getAsString())) criteriaCount++;
+            }
         }
-        Globaladvancements.LOGGER.info("Loaded {} completed client criteria", completedCriteria.size());
+        Globaladvancements.LOGGER.info("Loaded {} completed client criteria", criteriaCount);
     }
 
-    public static boolean completeCriterion(String criterion) {
-        if (!completedCriteria.add(criterion)) {
+    public static boolean completeCriterion(Identifier advancementId, String criterion) {
+        Set<String> criteria = completedCriteria.computeIfAbsent(advancementId, id -> new LinkedHashSet<>());
+        if (!criteria.add(criterion)) {
             return false;
         }
 
@@ -47,24 +57,25 @@ public class ClientProgressManager {
     }
 
     public static boolean isComplete(ClientAdvancement advancement) {
-        return !advancement.criterion().isEmpty() && completedCriteria.containsAll(advancement.criterion());
+        Set<String> criteria = completedCriteria.get(advancement.id());
+        return criteria != null && !advancement.criterion().isEmpty() && criteria.containsAll(advancement.criterion());
     }
 
     public static void save() {
-        JsonObject advancementsFile = readFile();
-        JsonArray criteria = new JsonArray();
+        JsonObject advancementsFile = new JsonObject();
+        JsonObject advancements = new JsonObject();
 
-        for (String criterion : completedCriteria) {
-            criteria.add(criterion);
+        for (Map.Entry<Identifier, Set<String>> advancement : completedCriteria.entrySet()) {
+            JsonArray criteria = new JsonArray();
+            for (String criterion : advancement.getValue()) {
+                criteria.add(criterion);
+            }
+            advancements.add(advancement.getKey().toString(), criteria);
         }
 
-        advancementsFile.add("completed_criteria", criteria);
-        if (!advancementsFile.has("advancements")) {
-            advancementsFile.add("advancements", new JsonArray());
-        }
-        if (!advancementsFile.has("dataVersion")) {
-            advancementsFile.addProperty("dataVersion", 4790);
-        }
+        advancementsFile.add("advancements", new JsonArray());
+        advancementsFile.add("completed_criteria", advancements);
+        advancementsFile.addProperty("dataVersion", 4790);
 
         try (Writer writer = new FileWriter(getFile())) {
             GSON.toJson(advancementsFile, writer);

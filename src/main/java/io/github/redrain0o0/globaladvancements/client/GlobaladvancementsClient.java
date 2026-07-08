@@ -37,9 +37,11 @@ public class GlobaladvancementsClient implements ClientModInitializer {
         ClientPlayNetworking.registerGlobalReceiver(ClientboundModCheckPayload.TYPE, (payload, context) -> Globaladvancements.LOGGER.info("Test"));
         ClientPlayNetworking.registerGlobalReceiver(ClientboundAdvancementHolderIdPayload.TYPE, (payload, context) -> {
             Globaladvancements.LOGGER.info("Server asked if we have '{}'", payload.advancementHolderId());
-            ClientProgressManager.completeCriterion(payload.criterion());
             boolean hasAdvancement = ClientAdvancementManager.get(payload.advancementHolderId())
-                    .map(ClientProgressManager::isComplete)
+                    .map((advancement) -> {
+                        ClientProgressManager.completeCriterion(payload.advancementHolderId(), payload.criterion());
+                        return ClientProgressManager.isComplete(advancement);
+                    })
                     .orElse(false);
             ClientPlayNetworking.send(new ServerboundVerifyAdvancementPayload(payload.advancementHolderId(), hasAdvancement));
         });
