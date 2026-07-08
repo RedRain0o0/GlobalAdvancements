@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 import io.github.redrain0o0.globaladvancements.Globaladvancements;
+import io.github.redrain0o0.globaladvancements.network.ServerboundCriterionMappingsPayload.CriterionMapping;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.minecraft.advancements.DisplayInfo;
 import net.minecraft.resources.Identifier;
@@ -65,8 +66,16 @@ public class ClientAdvancementManager implements SimpleSynchronousResourceReload
         return ADVANCEMENTS.values();
     }
 
-    public static List<Identifier> advancementIds() {
-        return List.copyOf(ADVANCEMENTS.keySet());
+    public static List<CriterionMapping> criterionMappings() {
+        List<CriterionMapping> criterionMappings = new ArrayList<>();
+
+        for (ClientAdvancement advancement : ADVANCEMENTS.values()) {
+            for (String criterionId : advancement.criterion()) {
+                ClientCriterionManager.getMapping(criterionId, advancement.id()).ifPresent(criterionMappings::add);
+            }
+        }
+
+        return criterionMappings;
     }
 
     public static List<ClientAdvancement> roots() {

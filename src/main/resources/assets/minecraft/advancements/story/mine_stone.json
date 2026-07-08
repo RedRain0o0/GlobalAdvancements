@@ -11,5 +11,8 @@
     "title": {
       "translate": "advancements.story.mine_stone.title"
     }
-  }
+  },
+  "criterion": [
+    "minecraft:mine_stone"
+  ]
 }

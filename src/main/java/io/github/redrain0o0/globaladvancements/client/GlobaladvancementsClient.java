@@ -2,10 +2,11 @@ package io.github.redrain0o0.globaladvancements.client;
 
 import io.github.redrain0o0.globaladvancements.Globaladvancements;
 import io.github.redrain0o0.globaladvancements.client.advancements.ClientAdvancementManager;
+import io.github.redrain0o0.globaladvancements.client.advancements.ClientCriterionManager;
 import io.github.redrain0o0.globaladvancements.client.advancements.ClientProgressManager;
 import io.github.redrain0o0.globaladvancements.network.ClientboundAdvancementHolderIdPayload;
 import io.github.redrain0o0.globaladvancements.network.ClientboundModCheckPayload;
-import io.github.redrain0o0.globaladvancements.network.ServerboundKnownAdvancementsPayload;
+import io.github.redrain0o0.globaladvancements.network.ServerboundCriterionMappingsPayload;
 import io.github.redrain0o0.globaladvancements.network.ServerboundModCheckPayload;
 import io.github.redrain0o0.globaladvancements.network.ServerboundVerifyAdvancementPayload;
 import net.fabricmc.api.ClientModInitializer;
@@ -23,6 +24,7 @@ public class GlobaladvancementsClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        ResourceManagerHelper.get(PackType.CLIENT_RESOURCES).registerReloadListener(ClientCriterionManager.INSTANCE);
         ResourceManagerHelper.get(PackType.CLIENT_RESOURCES).registerReloadListener(ClientAdvancementManager.INSTANCE);
 
         fileInitializer(GACFile.ADVANCEMENTS_FILE);
@@ -34,7 +36,7 @@ public class GlobaladvancementsClient implements ClientModInitializer {
             serverHasMod = ClientPlayNetworking.canSend(ServerboundModCheckPayload.TYPE);
             Globaladvancements.LOGGER.info(serverHasMod ? "Server has "+Globaladvancements.MOD_NAME+" installed" : "Server doesn't have "+Globaladvancements.MOD_NAME+" installed");
             if (serverHasMod) {
-                ClientPlayNetworking.send(new ServerboundKnownAdvancementsPayload(ClientAdvancementManager.advancementIds()));
+                ClientPlayNetworking.send(new ServerboundCriterionMappingsPayload(ClientAdvancementManager.criterionMappings()));
             }
         });
 

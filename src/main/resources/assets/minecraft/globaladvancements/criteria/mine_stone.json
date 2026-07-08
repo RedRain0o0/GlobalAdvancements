@@ -1,0 +1,5 @@
+{
+  "type": "minecraft_advancement",
+  "advancement": "minecraft:story/mine_stone",
+  "criterion": "get_stone"
+}
