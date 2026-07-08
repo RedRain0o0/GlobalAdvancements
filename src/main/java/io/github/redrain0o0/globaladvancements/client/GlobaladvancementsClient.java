@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import io.github.redrain0o0.globaladvancements.Globaladvancements;
 import io.github.redrain0o0.globaladvancements.client.advancements.ClientAdvancement;
 import io.github.redrain0o0.globaladvancements.client.advancements.ClientAdvancementManager;
+import io.github.redrain0o0.globaladvancements.client.advancements.ClientProgressManager;
 import io.github.redrain0o0.globaladvancements.network.ClientboundAdvancementHolderIdPayload;
 import io.github.redrain0o0.globaladvancements.network.ClientboundModCheckPayload;
 import io.github.redrain0o0.globaladvancements.network.ServerboundModCheckPayload;
@@ -33,6 +34,7 @@ public class GlobaladvancementsClient implements ClientModInitializer {
         fileInitializer(GACFile.ADVANCEMENTS_FILE);
         //fileInitializer(GACFile.STATS_FILE);
         fileInitializer(GACFile.CONFIG_FILE);
+        ClientProgressManager.load();
 
         ClientPlayConnectionEvents.JOIN.register((clientPacketListener, packetSender, minecraft) -> {
             serverHasMod = ClientPlayNetworking.canSend(ServerboundModCheckPayload.TYPE);
@@ -42,7 +44,10 @@ public class GlobaladvancementsClient implements ClientModInitializer {
         ClientPlayNetworking.registerGlobalReceiver(ClientboundModCheckPayload.TYPE, (payload, context) -> Globaladvancements.LOGGER.info("Test"));
         ClientPlayNetworking.registerGlobalReceiver(ClientboundAdvancementHolderIdPayload.TYPE, (payload, context) -> {
             Globaladvancements.LOGGER.info("Server asked if we have '{}'", payload.advancementHolderId());
-            ClientPlayNetworking.send(new ServerboundVerifyAdvancementPayload(payload.advancementHolderId(), false));
+            boolean hasAdvancement = ClientAdvancementManager.get(payload.advancementHolderId())
+                    .map(ClientProgressManager::isComplete)
+                    .orElse(false);
+            ClientPlayNetworking.send(new ServerboundVerifyAdvancementPayload(payload.advancementHolderId(), hasAdvancement));
         });
     }
 

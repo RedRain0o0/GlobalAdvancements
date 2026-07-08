@@ -77,6 +77,10 @@ public class ClientAdvancementManager implements SimpleSynchronousResourceReload
         return ADVANCEMENTS.size();
     }
 
+    public static Optional<ClientAdvancement> get(Identifier id) {
+        return Optional.ofNullable(ADVANCEMENTS.get(id));
+    }
+
     private static void buildTree() {
         ROOTS.clear();
         CHILDREN.clear();
