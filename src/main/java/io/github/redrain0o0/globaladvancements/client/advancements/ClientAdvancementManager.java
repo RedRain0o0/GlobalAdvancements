@@ -130,8 +130,9 @@ public class ClientAdvancementManager implements SimpleSynchronousResourceReload
             Optional<Identifier> parent = getParent(json);
             Optional<DisplayInfo> display = getDisplay(advancementId, json);
             List<String> criterion = getCriterion(json);
+            List<List<String>> requirements = getRequirements(json, criterion);
 
-            return Optional.of(new ClientAdvancement(advancementId, parent, display, criterion));
+            return Optional.of(new ClientAdvancement(advancementId, parent, display, criterion, requirements));
         } catch (IOException | RuntimeException exception) {
             Globaladvancements.LOGGER.warn("Failed to load client advancement '{}'", advancementId, exception);
             return Optional.empty();
@@ -177,5 +178,23 @@ public class ClientAdvancementManager implements SimpleSynchronousResourceReload
         }
 
         return criterion;
+    }
+
+    private static List<List<String>> getRequirements(JsonObject json, List<String> criterion) {
+        if (!json.has("requirements")) {
+            return criterion.isEmpty() ? List.of() : List.of(List.copyOf(criterion));
+        }
+
+        List<List<String>> requirements = new ArrayList<>();
+        JsonArray requirementArray = json.getAsJsonArray("requirements");
+        for (JsonElement requirementElement : requirementArray) {
+            List<String> requirement = new ArrayList<>();
+            for (JsonElement criterionElement : requirementElement.getAsJsonArray()) {
+                requirement.add(criterionElement.getAsString());
+            }
+            requirements.add(requirement);
+        }
+
+        return requirements;
     }
 }

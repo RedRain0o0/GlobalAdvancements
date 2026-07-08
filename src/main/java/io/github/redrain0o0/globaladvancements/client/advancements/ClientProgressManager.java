@@ -17,6 +17,7 @@ import java.io.Reader;
 import java.io.Writer;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -58,7 +59,17 @@ public class ClientProgressManager {
 
     public static boolean isComplete(ClientAdvancement advancement) {
         Set<String> criteria = completedCriteria.get(advancement.id());
-        return criteria != null && !advancement.criterion().isEmpty() && criteria.containsAll(advancement.criterion());
+        if (criteria == null || advancement.requirements().isEmpty()) {
+            return false;
+        }
+
+        for (List<String> requirement : advancement.requirements()) {
+            if (criteria.containsAll(requirement)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static void save() {
