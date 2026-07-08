@@ -1,0 +1,15 @@
+{
+  "criteria": {
+    "mine_logs": {
+      "conditions": {
+        "blocks": "#minecraft:logs"
+      },
+      "trigger": "globaladvancements:mine_block"
+    }
+  },
+  "requirements": [
+    [
+      "mine_logs"
+    ]
+  ]
+}

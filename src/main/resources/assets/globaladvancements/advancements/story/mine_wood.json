@@ -1,0 +1,17 @@
+{
+  "parent": "minecraft:story/root",
+  "display": {
+    "description": {
+      "translate": "advancements.globaladvancements.story.mine_wood.description"
+    },
+    "icon": {
+      "id": "minecraft:oak_log"
+    },
+    "title": {
+      "translate": "advancements.globaladvancements.story.mine_wood.title"
+    }
+  },
+  "criterion": [
+    "globaladvancements:mine_wood"
+  ]
+}

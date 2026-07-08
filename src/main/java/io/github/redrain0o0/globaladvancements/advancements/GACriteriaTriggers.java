@@ -1,19 +1,19 @@
 package io.github.redrain0o0.globaladvancements.advancements;
 
+import io.github.redrain0o0.globaladvancements.Globaladvancements;
 import net.minecraft.advancements.CriterionTrigger;
 import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 
 public class GACriteriaTriggers {
-    public static final MinecartRailCriterion MINECART_RAIL;
+    public static final MineBlockCriterion MINE_BLOCK = register("mine_block", new MineBlockCriterion());
+    public static final MinecartRailCriterion MINECART_RAIL = register("minecart_rail", new MinecartRailCriterion());
 
-    public static void initialize() {}
-
-    public static <T extends CriterionTrigger<?>> T register(final String name, final T criterion) {
-        return Registry.register(BuiltInRegistries.TRIGGER_TYPES, name, criterion);
+    public static void initialize() {
+        MINE_BLOCK.initialize();
     }
 
-    static {
-        MINECART_RAIL = register("minecart_rail", new MinecartRailCriterion());
+    public static <T extends CriterionTrigger<?>> T register(final String name, final T criterion) {
+        return Registry.register(BuiltInRegistries.TRIGGER_TYPES, Globaladvancements.createId(name), criterion);
     }
 }
