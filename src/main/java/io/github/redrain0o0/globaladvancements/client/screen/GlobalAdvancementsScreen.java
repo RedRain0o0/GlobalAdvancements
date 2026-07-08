@@ -2,6 +2,8 @@ package io.github.redrain0o0.globaladvancements.client.screen;
 
 import com.google.gson.JsonObject;
 import io.github.redrain0o0.globaladvancements.Globaladvancements;
+import io.github.redrain0o0.globaladvancements.client.advancements.ClientAdvancement;
+import io.github.redrain0o0.globaladvancements.client.advancements.ClientAdvancementManager;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.gui.Font;
@@ -100,6 +102,16 @@ public class GlobalAdvancementsScreen extends Screen {
 
     private void renderInside(GuiGraphicsExtractor guiGraphics, int i, int j) {
         guiGraphics.fill(i + 9, j + 18, i + 9 + 234, j + 18 + 113, -16777216);
+        if (ClientAdvancementManager.size() > 0) {
+            int y = j + WINDOW_INSIDE_Y + 5;
+            int maxY = j + WINDOW_INSIDE_Y + WINDOW_INSIDE_HEIGHT - 9;
+
+            for (ClientAdvancement root : ClientAdvancementManager.roots()) {
+                y = this.renderAdvancement(guiGraphics, root, i + WINDOW_INSIDE_X + 5, y, maxY, 0);
+            }
+            return;
+        }
+
         int k = i + 9 + 117;
         Font font = this.font;
         Component messageComponent = NO_ADVANCEMENTS_LABEL;
@@ -111,6 +123,24 @@ public class GlobalAdvancementsScreen extends Screen {
         textPos = j + 18 + 113;
         Objects.requireNonNull(this.font);
         guiGraphics.centeredText(font, messageComponent, k, textPos - 9, -1);
+    }
+
+    private int renderAdvancement(GuiGraphicsExtractor guiGraphics, ClientAdvancement advancement, int x, int y, int maxY, int depth) {
+        if (y > maxY) {
+            return y;
+        }
+
+        int indent = depth * 12;
+        int textWidth = WINDOW_INSIDE_WIDTH - 10 - indent;
+        String text = this.font.plainSubstrByWidth(advancement.id().toString(), textWidth);
+        guiGraphics.text(this.font, text, x + indent, y, -1);
+        y += 10;
+
+        for (ClientAdvancement child : ClientAdvancementManager.childrenOf(advancement.id())) {
+            y = this.renderAdvancement(guiGraphics, child, x, y, maxY, depth + 1);
+        }
+
+        return y;
     }
 
     public void renderWindow(GuiGraphicsExtractor guiGraphics, int i, int j) {
