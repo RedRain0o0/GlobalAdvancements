@@ -26,6 +26,8 @@ public class ClientAdvancementManager implements SimpleSynchronousResourceReload
 
     private static final String ADVANCEMENTS_FOLDER = "advancements";
     private static final Map<Identifier, ClientAdvancement> ADVANCEMENTS = new LinkedHashMap<>();
+    private static final List<ClientAdvancement> ROOTS = new ArrayList<>();
+    private static final Map<Identifier, List<ClientAdvancement>> CHILDREN = new LinkedHashMap<>();
 
     private ClientAdvancementManager() {}
 
@@ -53,15 +55,55 @@ public class ClientAdvancementManager implements SimpleSynchronousResourceReload
             );
         }
 
-        Globaladvancements.LOGGER.info("Loaded {} client advancements", ADVANCEMENTS.size());
+        buildTree();
+
+        Globaladvancements.LOGGER.info("Loaded {} client advancements with {} roots", ADVANCEMENTS.size(), ROOTS.size());
+        logTreeSummary();
     }
 
     public static Collection<ClientAdvancement> all() {
         return ADVANCEMENTS.values();
     }
 
+    public static List<ClientAdvancement> roots() {
+        return ROOTS;
+    }
+
+    public static List<ClientAdvancement> childrenOf(Identifier parentId) {
+        return CHILDREN.getOrDefault(parentId, List.of());
+    }
+
     public static int size() {
         return ADVANCEMENTS.size();
+    }
+
+    private static void buildTree() {
+        ROOTS.clear();
+        CHILDREN.clear();
+
+        for (ClientAdvancement advancement : ADVANCEMENTS.values()) {
+            Optional<Identifier> parent = advancement.parent();
+
+            if (parent.isEmpty()) {
+                ROOTS.add(advancement);
+                continue;
+            }
+
+            Identifier parentId = parent.get();
+            if (!ADVANCEMENTS.containsKey(parentId)) {
+                ROOTS.add(advancement);
+                Globaladvancements.LOGGER.warn("Client advancement '{}' has missing parent '{}'", advancement.id(), parentId);
+                continue;
+            }
+
+            CHILDREN.computeIfAbsent(parentId, id -> new ArrayList<>()).add(advancement);
+        }
+    }
+
+    private static void logTreeSummary() {
+        for (ClientAdvancement root : ROOTS) {
+            Globaladvancements.LOGGER.info("Root '{}' has {} children", root.id(), childrenOf(root.id()).size());
+        }
     }
 
     private static Optional<ClientAdvancement> loadAdvancement(Identifier advancementId, Resource resource) {
