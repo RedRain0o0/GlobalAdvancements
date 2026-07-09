@@ -1,0 +1,17 @@
+{
+  "parent": "globaladvancements:story/benchmarking",
+  "display": {
+    "description": {
+      "translate": "advancements.globaladvancements.story.time_to_mine.description"
+    },
+    "icon": {
+      "id": "minecraft:wooden_pickaxe"
+    },
+    "title": {
+      "translate": "advancements.globaladvancements.story.time_to_mine.title"
+    }
+  },
+  "criterion": [
+    "globaladvancements:time_to_mine"
+  ]
+}
