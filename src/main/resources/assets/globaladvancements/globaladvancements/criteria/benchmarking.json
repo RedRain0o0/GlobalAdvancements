@@ -1,0 +1,5 @@
+{
+  "type": "minecraft_advancement",
+  "advancement": "globaladvancements:story/benchmarking",
+  "criterion": "craft_crafting_table"
+}

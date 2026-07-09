@@ -1,0 +1,15 @@
+{
+  "criteria": {
+    "craft_crafting_table": {
+      "conditions": {
+        "result": "minecraft:crafting_table"
+      },
+      "trigger": "globaladvancements:craft_item"
+    }
+  },
+  "requirements": [
+    [
+      "craft_crafting_table"
+    ]
+  ]
+}
