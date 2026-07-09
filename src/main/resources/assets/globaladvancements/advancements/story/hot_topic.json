@@ -1,0 +1,17 @@
+{
+  "parent": "minecraft:story/root",
+  "display": {
+    "description": {
+      "translate": "advancements.globaladvancements.story.hot_topic.description"
+    },
+    "icon": {
+      "id": "minecraft:furnace"
+    },
+    "title": {
+      "translate": "advancements.globaladvancements.story.hot_topic.title"
+    }
+  },
+  "criterion": [
+    "globaladvancements:hot_topic"
+  ]
+}

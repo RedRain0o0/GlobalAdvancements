@@ -1,0 +1,15 @@
+{
+  "criteria": {
+    "craft_furnace": {
+      "conditions": {
+        "result": "minecraft:furnace"
+      },
+      "trigger": "globaladvancements:craft_item"
+    }
+  },
+  "requirements": [
+    [
+      "craft_furnace"
+    ]
+  ]
+}

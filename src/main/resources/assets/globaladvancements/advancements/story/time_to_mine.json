@@ -1,5 +1,5 @@
 {
-  "parent": "globaladvancements:story/benchmarking",
+  "parent": "minecraft:story/root",
   "display": {
     "description": {
       "translate": "advancements.globaladvancements.story.time_to_mine.description"
