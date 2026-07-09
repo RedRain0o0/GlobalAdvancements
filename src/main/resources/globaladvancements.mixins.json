@@ -8,6 +8,7 @@
   "compatibilityLevel": "JAVA_25",
   "mixins": [
     "FurnaceResultSlotMixin",
+    "ItemEntityMixin",
     "PlayerAdvancementsMixin",
     "ResultSlotMixin"
   ],

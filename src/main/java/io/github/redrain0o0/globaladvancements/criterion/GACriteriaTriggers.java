@@ -11,6 +11,7 @@ public class GACriteriaTriggers {
     public static final MineBlockCriterion MINE_BLOCK = register("mine_block", new MineBlockCriterion());
     public static final MinecartRailCriterion MINECART_RAIL = register("minecart_rail", new MinecartRailCriterion());
     public static final OpenInventoryCriterion OPEN_INVENTORY = register("open_inventory", new OpenInventoryCriterion());
+    public static final PickupItemCriterion PICKUP_ITEM = register("pickup_item", new PickupItemCriterion());
     public static final SmeltItemCriterion SMELT_ITEM = register("smelt_item", new SmeltItemCriterion());
 
     public static void initialize() {
