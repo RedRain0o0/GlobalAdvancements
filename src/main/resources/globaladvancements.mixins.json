@@ -7,6 +7,7 @@
   "package": "io.github.redrain0o0.globaladvancements.mixin",
   "compatibilityLevel": "JAVA_25",
   "mixins": [
+    "FurnaceResultSlotMixin",
     "PlayerAdvancementsMixin",
     "ResultSlotMixin"
   ],

@@ -1,0 +1,17 @@
+{
+  "parent": "minecraft:story/root",
+  "display": {
+    "description": {
+      "translate": "advancements.globaladvancements.story.acquire_hardware.description"
+    },
+    "icon": {
+      "id": "minecraft:iron_ingot"
+    },
+    "title": {
+      "translate": "advancements.globaladvancements.story.acquire_hardware.title"
+    }
+  },
+  "criterion": [
+    "globaladvancements:acquire_hardware"
+  ]
+}

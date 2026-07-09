@@ -1,0 +1,5 @@
+{
+  "type": "minecraft_advancement",
+  "advancement": "globaladvancements:story/acquire_hardware",
+  "criterion": "smelt_iron_ingot"
+}

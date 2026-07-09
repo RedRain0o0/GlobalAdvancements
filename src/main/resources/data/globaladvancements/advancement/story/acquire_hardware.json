@@ -1,0 +1,15 @@
+{
+  "criteria": {
+    "smelt_iron_ingot": {
+      "conditions": {
+        "result": "minecraft:iron_ingot"
+      },
+      "trigger": "globaladvancements:smelt_item"
+    }
+  },
+  "requirements": [
+    [
+      "smelt_iron_ingot"
+    ]
+  ]
+}
