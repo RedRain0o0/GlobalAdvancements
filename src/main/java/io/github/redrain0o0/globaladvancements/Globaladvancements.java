@@ -49,7 +49,7 @@ public class Globaladvancements implements ModInitializer {
         PayloadTypeRegistry.serverboundPlay().register(ServerboundOpenInventoryPayload.TYPE, ServerboundOpenInventoryPayload.STREAM_CODEC);
         PayloadTypeRegistry.serverboundPlay().register(ServerboundVerifyAdvancementPayload.TYPE, ServerboundVerifyAdvancementPayload.STREAM_CODEC);
 
-        ServerPlayNetworking.registerGlobalReceiver(ServerboundModCheckPayload.TYPE, (payload, context) -> LOGGER.info("You shouldn't see this I dont think... The ModCheck packet is not for use, only checking"));
+        ServerPlayNetworking.registerGlobalReceiver(ServerboundModCheckPayload.TYPE, (payload, context) -> LOGGER.info("The ModCheck Packet should never be sent, only used for canSend"));
         ServerPlayNetworking.registerGlobalReceiver(ServerboundOpenInventoryPayload.TYPE, (payload, context) -> GACriteriaTriggers.OPEN_INVENTORY.trigger(context.player()));
         ServerPlayNetworking.registerGlobalReceiver(ServerboundCriterionMappingsPayload.TYPE, (payload, context) -> {
             clientCriteria.put(context.player().getUUID(), List.copyOf(payload.criteria()));
@@ -59,7 +59,8 @@ public class Globaladvancements implements ModInitializer {
             Pair<UUID, Identifier> playerAdvancementPair = new Pair<>(context.player().getUUID(), payload.advancementHolderId());
             if (queriedAdvancements.contains(playerAdvancementPair)) {
                 queriedAdvancements.remove(playerAdvancementPair);
-                if (payload.hasAdvancement()) return;
+                if (payload.hadAdvancement()) return;
+                if (!payload.hasAdvancement()) return;
                 ServerPlayer player = context.player();
                 MinecraftServer server = player.level().getServer();
 

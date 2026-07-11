@@ -42,16 +42,20 @@ public class GlobaladvancementsClient implements ClientModInitializer {
             }
         });
 
-        ClientPlayNetworking.registerGlobalReceiver(ClientboundModCheckPayload.TYPE, (payload, context) -> Globaladvancements.LOGGER.info("Test"));
+        ClientPlayNetworking.registerGlobalReceiver(ClientboundModCheckPayload.TYPE, (payload, context) -> Globaladvancements.LOGGER.info("The ModCheck Packet should never be sent, only used for canSend"));
         ClientPlayNetworking.registerGlobalReceiver(ClientboundAdvancementHolderIdPayload.TYPE, (payload, context) -> {
             Globaladvancements.LOGGER.info("Server asked if we have '{}'", payload.advancementHolderId());
+            boolean hadAdvancement = ClientAdvancementManager.get(payload.advancementHolderId())
+                    .map(ClientProgressManager::isComplete)
+                    .orElse(false);
             boolean hasAdvancement = ClientAdvancementManager.get(payload.advancementHolderId())
                     .map((advancement) -> {
                         ClientProgressManager.completeCriterion(payload.advancementHolderId(), payload.criterion());
                         return ClientProgressManager.isComplete(advancement);
                     })
                     .orElse(false);
-            ClientPlayNetworking.send(new ServerboundVerifyAdvancementPayload(payload.advancementHolderId(), hasAdvancement));
+            Globaladvancements.LOGGER.info("{}, {}", hadAdvancement, hasAdvancement);
+            ClientPlayNetworking.send(new ServerboundVerifyAdvancementPayload(payload.advancementHolderId(), hasAdvancement, hadAdvancement));
         });
     }
 
@@ -80,10 +84,10 @@ public class GlobaladvancementsClient implements ClientModInitializer {
         STATS_FILE("/stats.json"),
         CONFIG_FILE("/config/globaladvancements.json");
 
-        private String path;
+        private final String path;
 
 
-        private GACFile(String path) {
+        GACFile(String path) {
             this.path = Minecraft.getInstance().gameDirectory.getAbsolutePath()+path;
 
         }

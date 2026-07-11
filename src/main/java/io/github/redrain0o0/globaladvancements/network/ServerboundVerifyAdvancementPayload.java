@@ -7,7 +7,7 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.Identifier;
 
-public record ServerboundVerifyAdvancementPayload(Identifier advancementHolderId, boolean hasAdvancement) implements CustomPacketPayload {
+public record ServerboundVerifyAdvancementPayload(Identifier advancementHolderId, boolean hasAdvancement, boolean hadAdvancement) implements CustomPacketPayload {
     public static final Identifier VERIFY_ADVANCEMENT_PAYLOAD_ID = Globaladvancements.createId("verify_advancement_serverbound");
     public static final CustomPacketPayload.Type<ServerboundVerifyAdvancementPayload> TYPE = new CustomPacketPayload.Type<>(VERIFY_ADVANCEMENT_PAYLOAD_ID);
     public static final StreamCodec<RegistryFriendlyByteBuf, ServerboundVerifyAdvancementPayload> STREAM_CODEC = StreamCodec.composite(
@@ -15,6 +15,8 @@ public record ServerboundVerifyAdvancementPayload(Identifier advancementHolderId
             ServerboundVerifyAdvancementPayload::advancementHolderId,
             ByteBufCodecs.BOOL,
             ServerboundVerifyAdvancementPayload::hasAdvancement,
+            ByteBufCodecs.BOOL,
+            ServerboundVerifyAdvancementPayload::hadAdvancement,
             ServerboundVerifyAdvancementPayload::new);
 
     @Override
