@@ -9,9 +9,18 @@ import io.github.redrain0o0.globaladvancements.Globaladvancements;
 import io.github.redrain0o0.globaladvancements.network.ServerboundCriterionMappingsPayload.CriterionMapping;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.minecraft.advancements.DisplayInfo;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
+import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.component.DataComponentPatch;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
+import net.minecraft.resources.RegistryOps;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.world.item.ItemStackTemplate;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -26,6 +35,10 @@ public class ClientAdvancementManager implements SimpleSynchronousResourceReload
     public static final ClientAdvancementManager INSTANCE = new ClientAdvancementManager();
 
     private static final String ADVANCEMENTS_FOLDER = "advancements";
+    private static final RegistryOps<JsonElement> DISPLAY_OPS = RegistryOps.create(
+            JsonOps.INSTANCE,
+            HolderLookup.Provider.create(BuiltInRegistries.REGISTRY.stream().map(registry -> registry))
+    );
     private static final Map<Identifier, ClientAdvancement> ADVANCEMENTS = new LinkedHashMap<>();
     private static final List<ClientAdvancement> ROOTS = new ArrayList<>();
     private static final Map<Identifier, List<ClientAdvancement>> CHILDREN = new LinkedHashMap<>();
@@ -160,9 +173,48 @@ public class ClientAdvancementManager implements SimpleSynchronousResourceReload
             return Optional.empty();
         }
 
-        return DisplayInfo.CODEC.parse(JsonOps.INSTANCE, json.get("display")).resultOrPartial((error) ->
-                Globaladvancements.LOGGER.warn("Failed to parse display for '{}': {}", advancementId, error)
+        JsonObject display = json.getAsJsonObject("display").deepCopy();
+        if (json.has("background") && !display.has("background")) {
+            display.add("background", json.get("background"));
+        }
+
+        return DisplayInfo.CODEC.parse(DISPLAY_OPS, display)
+                .resultOrPartial((error) -> Globaladvancements.LOGGER.warn("Failed to parse display for '{}': {}", advancementId, error))
+                .map(ClientAdvancementManager::bindIcon);
+    }
+
+    private static DisplayInfo bindIcon(DisplayInfo display) {
+        ItemStackTemplate icon = display.getIcon();
+        Identifier itemId = icon.item().unwrapKey().orElseThrow().identifier();
+        DataComponentPatch.Builder components = DataComponentPatch.builder();
+        icon.components().entrySet().forEach(entry -> copyComponent(components, entry));
+        components.set(DataComponents.ITEM_MODEL, itemId);
+
+        ItemStackTemplate boundIcon = new ItemStackTemplate(
+                Holder.direct(icon.item().value(), DataComponentMap.EMPTY),
+                icon.count(),
+                components.build()
         );
+        return new DisplayInfo(
+                boundIcon,
+                display.getTitle(),
+                display.getDescription(),
+                display.getBackground(),
+                display.getType(),
+                display.shouldShowToast(),
+                display.shouldAnnounceChat(),
+                display.isHidden()
+        );
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static void copyComponent(DataComponentPatch.Builder components, Map.Entry<DataComponentType<?>, Optional<?>> entry) {
+        DataComponentType type = entry.getKey();
+        if (entry.getValue().isPresent()) {
+            components.set(type, entry.getValue().get());
+        } else {
+            components.remove(type);
+        }
     }
 
     private static List<String> getCriterion(JsonObject json) {
