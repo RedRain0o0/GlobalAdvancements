@@ -15,20 +15,25 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.Writer;
+import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public class ClientProgressManager {
     private static final Gson GSON = new Gson();
     private static final Map<Identifier, Set<String>> completedCriteria = new LinkedHashMap<>();
+    private static final Map<Identifier, Instant> unlockTimes = new LinkedHashMap<>();
 
     public static void load() {
         completedCriteria.clear();
+        unlockTimes.clear();
 
-        JsonObject advancements = readFile().getAsJsonObject("completed_criteria");
+        JsonObject file = readFile();
+        JsonObject advancements = file.getAsJsonObject("completed_criteria");
 
         if (advancements == null) {
             save();
@@ -44,17 +49,38 @@ public class ClientProgressManager {
                 if (criteria.add(criterion.getAsString())) criteriaCount++;
             }
         }
-        Globaladvancements.LOGGER.info("Loaded {} completed client criteria", criteriaCount);
+
+        JsonObject unlockedAt = file.getAsJsonObject("unlocked_at");
+        if (unlockedAt != null) {
+            for (Map.Entry<String, JsonElement> entry : unlockedAt.entrySet()) {
+                try {
+                    unlockTimes.put(Identifier.parse(entry.getKey()), Instant.parse(entry.getValue().getAsString()));
+                } catch (RuntimeException exception) {
+                    Globaladvancements.LOGGER.warn("Ignoring invalid unlock time for '{}'", entry.getKey(), exception);
+                }
+            }
+        }
+
+        Globaladvancements.LOGGER.info("Loaded {} completed client criteria and {} unlock times", criteriaCount, unlockTimes.size());
     }
 
-    public static boolean completeCriterion(Identifier advancementId, String criterion) {
-        Set<String> criteria = completedCriteria.computeIfAbsent(advancementId, id -> new LinkedHashSet<>());
+    public static boolean completeCriterion(ClientAdvancement advancement, String criterion) {
+        boolean wasComplete = isComplete(advancement);
+        Set<String> criteria = completedCriteria.computeIfAbsent(advancement.id(), id -> new LinkedHashSet<>());
         if (!criteria.add(criterion)) {
             return false;
         }
 
+        if (!wasComplete && isComplete(advancement)) {
+            unlockTimes.putIfAbsent(advancement.id(), Instant.now());
+        }
+
         save();
         return true;
+    }
+
+    public static Optional<Instant> unlockedAt(Identifier advancementId) {
+        return Optional.ofNullable(unlockTimes.get(advancementId));
     }
 
     public static boolean isComplete(ClientAdvancement advancement) {
@@ -84,8 +110,14 @@ public class ClientProgressManager {
             advancements.add(advancement.getKey().toString(), criteria);
         }
 
+        JsonObject unlockedAt = new JsonObject();
+        for (Map.Entry<Identifier, Instant> entry : unlockTimes.entrySet()) {
+            unlockedAt.addProperty(entry.getKey().toString(), entry.getValue().toString());
+        }
+
         advancementsFile.add("advancements", new JsonArray());
         advancementsFile.add("completed_criteria", advancements);
+        advancementsFile.add("unlocked_at", unlockedAt);
         advancementsFile.addProperty("dataVersion", 4790);
 
         try (Writer writer = new FileWriter(getFile())) {

@@ -50,7 +50,7 @@ public class GlobaladvancementsClient implements ClientModInitializer {
                     .orElse(false);
             boolean hasAdvancement = ClientAdvancementManager.get(payload.advancementHolderId())
                     .map((advancement) -> {
-                        ClientProgressManager.completeCriterion(payload.advancementHolderId(), payload.criterion());
+                        ClientProgressManager.completeCriterion(advancement, payload.criterion());
                         return ClientProgressManager.isComplete(advancement);
                     })
                     .orElse(false);
