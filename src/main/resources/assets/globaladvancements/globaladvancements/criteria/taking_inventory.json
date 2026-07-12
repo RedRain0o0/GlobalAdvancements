@@ -1,5 +1,0 @@
-{
-  "type": "minecraft_advancement",
-  "advancement": "globaladvancements:story/taking_inventory",
-  "criterion": "open_inventory"
-}

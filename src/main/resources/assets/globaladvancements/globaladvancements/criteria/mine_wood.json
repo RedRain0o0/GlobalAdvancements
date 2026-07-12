@@ -1,5 +1,0 @@
-{
-  "type": "minecraft_advancement",
-  "advancement": "globaladvancements:story/mine_wood",
-  "criterion": "mine_logs"
-}

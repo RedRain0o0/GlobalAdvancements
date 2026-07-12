@@ -1,5 +1,0 @@
-{
-  "type": "minecraft_advancement",
-  "advancement": "globaladvancements:story/time_to_mine",
-  "criterion": "craft_wooden_pickaxe"
-}

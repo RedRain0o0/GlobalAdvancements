@@ -2,17 +2,5 @@
   "gui.globaladvancements.startGame": "Start Game",
   "gui.globaladvancements.unlockedAt": "Unlocked: %s",
   "gui.globaladvancements.hostPrivileges": "If you create, load or save a world with Cheats enabled, that world will have advancements disabled, even if it is then loaded with Cheats disabled. Are you sure you want to continue?",
-  "gui.globaladvancements.creativeMode": "If you create, load or save a world in Creative Mode, that world will have advancements disabled, even if it is then loaded in Survival Mode. Are you sure you want to continue?",
-  "advancements.globaladvancements.story.acquire_hardware.title": "Acquire Hardware",
-  "advancements.globaladvancements.story.acquire_hardware.description": "Smelt an iron ingot.",
-  "advancements.globaladvancements.story.benchmarking.title": "Benchmarking",
-  "advancements.globaladvancements.story.benchmarking.description": "Craft a crafting table",
-  "advancements.globaladvancements.story.hot_topic.title": "Hot Topic",
-  "advancements.globaladvancements.story.hot_topic.description": "Construct a furnace out of eight cobblestone blocks.",
-  "advancements.globaladvancements.story.mine_wood.title": "Getting Wood",
-  "advancements.globaladvancements.story.mine_wood.description": "Break a log",
-  "advancements.globaladvancements.story.time_to_mine.title": "Time to Mine!",
-  "advancements.globaladvancements.story.time_to_mine.description": "Use planks and sticks to make a pickaxe.",
-  "advancements.globaladvancements.story.taking_inventory.title": "Taking Inventory",
-  "advancements.globaladvancements.story.taking_inventory.description": "Open your inventory"
+  "gui.globaladvancements.creativeMode": "If you create, load or save a world in Creative Mode, that world will have advancements disabled, even if it is then loaded in Survival Mode. Are you sure you want to continue?"
 }
