@@ -1,6 +1,7 @@
 {
   "gui.globaladvancements.startGame": "Start Game",
   "gui.globaladvancements.unlockedAt": "Unlocked: %s",
+  "gui.globaladvancements.progress": "%s / %s · %s%%",
   "gui.globaladvancements.reset": "Reset",
   "gui.globaladvancements.reset.tooltip": "Reset progress. Shift-click to restore the latest reset backup.",
   "gui.globaladvancements.reset.title": "Reset Global Advancements?",

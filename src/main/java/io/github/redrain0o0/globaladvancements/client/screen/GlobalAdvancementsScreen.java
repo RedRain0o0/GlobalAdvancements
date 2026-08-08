@@ -1,11 +1,14 @@
 package io.github.redrain0o0.globaladvancements.client.screen;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import io.github.redrain0o0.globaladvancements.client.advancements.ClientAdvancement;
+import io.github.redrain0o0.globaladvancements.client.advancements.ClientAdvancementManager;
 import io.github.redrain0o0.globaladvancements.client.advancements.ClientAdvancementView;
 import io.github.redrain0o0.globaladvancements.client.advancements.ClientProgressManager;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.AlertScreen;
@@ -20,6 +23,7 @@ import org.jetbrains.annotations.Nullable;
 public class GlobalAdvancementsScreen extends AdvancementsScreen {
     private final ClientAdvancementView advancements;
     private final Screen lastScreen;
+    private final Component progressText;
     private Button resetButton;
 
     public GlobalAdvancementsScreen(@Nullable Screen lastScreen) {
@@ -30,6 +34,7 @@ public class GlobalAdvancementsScreen extends AdvancementsScreen {
         super(advancements, lastScreen);
         this.advancements = advancements;
         this.lastScreen = lastScreen;
+        this.progressText = getProgressText();
     }
 
     public static void refreshIfOpen() {
@@ -55,6 +60,29 @@ public class GlobalAdvancementsScreen extends AdvancementsScreen {
             this.resetButton.setX(this.width - 55);
             this.resetButton.setY(this.height - 26);
         }
+    }
+
+    @Override
+    public void extractWindow(GuiGraphicsExtractor graphics, int x, int y, int mouseX, int mouseY) {
+        super.extractWindow(graphics, x, y, mouseX, mouseY);
+        graphics.text(this.font, this.progressText,
+                x + WINDOW_WIDTH - 8 - this.font.width(this.progressText), y + 6, 0xFF404040, false);
+    }
+
+    private static Component getProgressText() {
+        int completed = 0;
+        int total = 0;
+        for (ClientAdvancement advancement : ClientAdvancementManager.all()) {
+            if (advancement.display().isEmpty()) {
+                continue;
+            }
+            total++;
+            if (ClientProgressManager.isComplete(advancement)) {
+                completed++;
+            }
+        }
+        int percentage = total == 0 ? 0 : completed * 100 / total;
+        return Component.translatable("gui.globaladvancements.progress", completed, total, percentage);
     }
 
     private void onResetPressed() {
