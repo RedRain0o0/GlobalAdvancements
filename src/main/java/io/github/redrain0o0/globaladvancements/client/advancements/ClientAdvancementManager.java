@@ -9,6 +9,7 @@ import io.github.redrain0o0.globaladvancements.Globaladvancements;
 import io.github.redrain0o0.globaladvancements.client.screen.GlobalAdvancementsScreen;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.minecraft.advancements.DisplayInfo;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.component.DataComponentMap;
@@ -18,6 +19,10 @@ import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.RegistryOps;
+import net.minecraft.server.packs.PackType;
+import net.minecraft.server.packs.repository.ServerPacksSource;
+import net.minecraft.server.packs.resources.CloseableResourceManager;
+import net.minecraft.server.packs.resources.MultiPackResourceManager;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.world.item.ItemStackTemplate;
@@ -40,10 +45,13 @@ public class ClientAdvancementManager implements SimpleSynchronousResourceReload
     public static final ClientAdvancementManager INSTANCE = new ClientAdvancementManager();
 
     private static final String ADVANCEMENTS_FOLDER = "advancements";
+    private static final String VANILLA_ADVANCEMENTS_FOLDER = "advancement";
     private static final RegistryOps<JsonElement> DISPLAY_OPS = RegistryOps.create(
             JsonOps.INSTANCE,
             HolderLookup.Provider.create(BuiltInRegistries.REGISTRY.stream().map(registry -> registry))
     );
+    private static Map<Identifier, ClientAdvancement> resourceAdvancements = Map.of();
+    private static Map<Identifier, ClientAdvancement> vanillaAdvancements = Map.of();
     private static volatile Snapshot snapshot = Snapshot.EMPTY;
 
     private ClientAdvancementManager() {}
@@ -68,16 +76,56 @@ public class ClientAdvancementManager implements SimpleSynchronousResourceReload
             );
         }
 
-        Map<Identifier, ClientAdvancement> validated = validateParents(parsed);
-        Snapshot replacement = Snapshot.create(validated);
-        snapshot = replacement;
+        boolean simplifyIcons = Minecraft.getInstance().getConnection() == null;
+        Map<Identifier, ClientAdvancement> vanilla = readVanillaAdvancements(getDisplayOps(), simplifyIcons)
+                .orElse(vanillaAdvancements);
+        setAdvancements(parsed, vanilla);
         ClientCriterionManager.replayMinecraftAdvancements();
         GlobalAdvancementsScreen.refreshIfOpen();
 
-        Globaladvancements.LOGGER.info("Loaded {} client advancements with {} roots", replacement.advancements().size(), replacement.roots().size());
-        for (ClientAdvancement root : replacement.roots()) {
-            Globaladvancements.LOGGER.info("Root '{}' has {} children", root.id(), replacement.children().getOrDefault(root.id(), List.of()).size());
+        Globaladvancements.LOGGER.info("Loaded {} vanilla advancements, {} resource pack advancements and {} active client advancements", vanillaAdvancements.size(), resourceAdvancements.size(), snapshot.advancements().size());
+    }
+
+    public static boolean loadVanillaAdvancements(HolderLookup.Provider registries) {
+        Optional<Map<Identifier, ClientAdvancement>> parsed = readVanillaAdvancements(
+                registries.createSerializationContext(JsonOps.INSTANCE),
+                false
+        );
+        if (parsed.isEmpty()) {
+            return false;
         }
+
+        setVanillaAdvancements(parsed.get());
+        GlobalAdvancementsScreen.refreshIfOpen();
+        Globaladvancements.LOGGER.info("Loaded {} vanilla advancements", vanillaAdvancements.size());
+        return true;
+    }
+
+    private static Optional<Map<Identifier, ClientAdvancement>> readVanillaAdvancements(
+            RegistryOps<JsonElement> displayOps,
+            boolean simplifyIcons
+    ) {
+        Map<Identifier, ClientAdvancement> parsed = new LinkedHashMap<>();
+        try (CloseableResourceManager resources = new MultiPackResourceManager(
+                PackType.SERVER_DATA,
+                List.of(ServerPacksSource.createVanillaPackSource())
+        )) {
+            Map<Identifier, Resource> advancements = resources.listResources(
+                    VANILLA_ADVANCEMENTS_FOLDER,
+                    id -> id.getPath().endsWith(".json")
+                            && !id.getPath().startsWith(VANILLA_ADVANCEMENTS_FOLDER + "/recipes/")
+            );
+            for (Map.Entry<Identifier, Resource> entry : advancements.entrySet()) {
+                Identifier advancementId = getAdvancementId(entry.getKey(), VANILLA_ADVANCEMENTS_FOLDER);
+                loadVanillaAdvancement(advancementId, entry.getValue(), displayOps, simplifyIcons).ifPresent(advancement ->
+                        parsed.put(advancement.id(), advancement)
+                );
+            }
+        } catch (RuntimeException exception) {
+            Globaladvancements.LOGGER.warn("Failed to load vanilla advancements", exception);
+            return Optional.empty();
+        }
+        return Optional.of(parsed);
     }
 
     public static Collection<ClientAdvancement> all() {
@@ -102,6 +150,93 @@ public class ClientAdvancementManager implements SimpleSynchronousResourceReload
 
     public static Optional<ClientAdvancement> get(Identifier id) {
         return Optional.ofNullable(snapshot.advancements().get(id));
+    }
+
+    public static synchronized boolean isVanilla(Identifier id) {
+        return vanillaAdvancements.containsKey(id) && !resourceAdvancements.containsKey(id);
+    }
+
+    private static synchronized void setAdvancements(Map<Identifier, ClientAdvancement> resources,
+                                                     Map<Identifier, ClientAdvancement> vanilla) {
+        resourceAdvancements = Collections.unmodifiableMap(new LinkedHashMap<>(resources));
+        vanillaAdvancements = Collections.unmodifiableMap(new LinkedHashMap<>(vanilla));
+        rebuildSnapshot();
+    }
+
+    private static synchronized void setVanillaAdvancements(Map<Identifier, ClientAdvancement> advancements) {
+        vanillaAdvancements = Collections.unmodifiableMap(new LinkedHashMap<>(advancements));
+        rebuildSnapshot();
+    }
+
+    private static void rebuildSnapshot() {
+        Map<Identifier, ClientAdvancement> merged = new LinkedHashMap<>(vanillaAdvancements);
+        merged.putAll(resourceAdvancements);
+        snapshot = Snapshot.create(validateParents(merged));
+        ClientProgressManager.preserveCompletions(snapshot.advancements().values());
+    }
+
+    private static Optional<ClientAdvancement> loadVanillaAdvancement(Identifier advancementId,
+                                                                      Resource resource,
+                                                                      RegistryOps<JsonElement> displayOps,
+                                                                      boolean simplifyIcons) {
+        try (BufferedReader reader = resource.openAsReader()) {
+            JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
+            if (!json.has("display")) {
+                return Optional.empty();
+            }
+
+            Optional<DisplayInfo> display = getDisplay(advancementId, json, displayOps, !simplifyIcons);
+            if (display.isEmpty() && simplifyIcons) {
+                JsonObject simplified = json.deepCopy();
+                simplified.getAsJsonObject("display").getAsJsonObject("icon").remove("components");
+                display = getDisplay(advancementId, simplified, displayOps, true);
+            }
+            if (display.isEmpty()) {
+                throw new IllegalArgumentException("Invalid display");
+            }
+
+            Map<String, ClientCriterion> criteria = getVanillaCriteria(advancementId, json);
+            List<List<String>> requirements = getRequirements(json, criteria);
+            JsonObject completeConditions = new JsonObject();
+            completeConditions.addProperty("advancement", advancementId.toString());
+            List<String> completionCriteria = new ArrayList<>();
+            criteria.put("complete", new ClientCriterion(ClientCriterionManager.MINECRAFT_ADVANCEMENT, completeConditions));
+            completionCriteria.add("complete");
+            if ("minecraft:story/mine_stone".equals(advancementId.toString())) {
+                criteria.put("minecraft:mine_stone", new ClientCriterion(ClientCriterionManager.MINECRAFT_ADVANCEMENT, completeConditions));
+                completionCriteria.add("minecraft:mine_stone");
+            }
+            return Optional.of(new ClientAdvancement(
+                    advancementId,
+                    getParent(json),
+                    display,
+                    criteria,
+                    requirements.stream().map(requirement -> {
+                        List<String> withComplete = new ArrayList<>(requirement);
+                        withComplete.addAll(completionCriteria);
+                        return List.copyOf(withComplete);
+                    }).toList()
+            ));
+        } catch (IOException | RuntimeException exception) {
+            Globaladvancements.LOGGER.warn("Failed to load vanilla advancement '{}'", advancementId, exception);
+            return Optional.empty();
+        }
+    }
+
+    private static Map<String, ClientCriterion> getVanillaCriteria(Identifier advancementId, JsonObject json) {
+        Map<String, ClientCriterion> criteria = new LinkedHashMap<>();
+        JsonObject definitions = json.getAsJsonObject("criteria");
+        for (String name : definitions.keySet()) {
+            if (name.isEmpty()) {
+                throw new IllegalArgumentException("Criterion names cannot be empty");
+            }
+
+            JsonObject conditions = new JsonObject();
+            conditions.addProperty("advancement", advancementId.toString());
+            conditions.addProperty("criterion", name);
+            criteria.put(name, new ClientCriterion(ClientCriterionManager.MINECRAFT_ADVANCEMENT, conditions));
+        }
+        return criteria;
     }
 
     private static Optional<ClientAdvancement> loadAdvancement(Identifier advancementId, Resource resource) {
@@ -129,8 +264,12 @@ public class ClientAdvancementManager implements SimpleSynchronousResourceReload
     }
 
     private static Identifier getAdvancementId(Identifier fileId) {
+        return getAdvancementId(fileId, ADVANCEMENTS_FOLDER);
+    }
+
+    private static Identifier getAdvancementId(Identifier fileId, String folder) {
         String path = fileId.getPath();
-        path = path.substring(ADVANCEMENTS_FOLDER.length() + 1);
+        path = path.substring(folder.length() + 1);
         path = path.substring(0, path.length() - ".json".length());
 
         return Identifier.fromNamespaceAndPath(fileId.getNamespace(), path);
@@ -145,6 +284,19 @@ public class ClientAdvancementManager implements SimpleSynchronousResourceReload
     }
 
     private static Optional<DisplayInfo> getDisplay(Identifier advancementId, JsonObject json) {
+        return getDisplay(advancementId, json, getDisplayOps(), true);
+    }
+
+    private static RegistryOps<JsonElement> getDisplayOps() {
+        if (Minecraft.getInstance().getConnection() != null) {
+            return Minecraft.getInstance().getConnection().registryAccess().createSerializationContext(JsonOps.INSTANCE);
+        }
+        return DISPLAY_OPS;
+    }
+
+    private static Optional<DisplayInfo> getDisplay(Identifier advancementId, JsonObject json,
+                                                    RegistryOps<JsonElement> displayOps,
+                                                    boolean logErrors) {
         if (!json.has("display")) {
             return Optional.empty();
         }
@@ -154,9 +306,12 @@ public class ClientAdvancementManager implements SimpleSynchronousResourceReload
             display.add("background", json.get("background"));
         }
 
-        return DisplayInfo.CODEC.parse(DISPLAY_OPS, display)
-                .resultOrPartial(error -> Globaladvancements.LOGGER.warn("Failed to parse display for '{}': {}", advancementId, error))
-                .map(ClientAdvancementManager::bindIcon);
+        if (logErrors) {
+            return DisplayInfo.CODEC.parse(displayOps, display)
+                    .resultOrPartial(error -> Globaladvancements.LOGGER.warn("Failed to parse display for '{}': {}", advancementId, error))
+                    .map(ClientAdvancementManager::bindIcon);
+        }
+        return DisplayInfo.CODEC.parse(displayOps, display).result().map(ClientAdvancementManager::bindIcon);
     }
 
     private static DisplayInfo bindIcon(DisplayInfo display) {

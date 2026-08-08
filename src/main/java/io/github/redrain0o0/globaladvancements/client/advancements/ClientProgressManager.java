@@ -77,18 +77,24 @@ public class ClientProgressManager {
     }
 
     public static boolean completeCriterion(ClientAdvancement advancement, String criterion) {
+        return completeCriterion(advancement, criterion, true);
+    }
+
+    static boolean completeCriterion(ClientAdvancement advancement, String criterion, boolean saveProgress) {
         boolean wasComplete = isComplete(advancement);
         Set<String> criteria = completedCriteria.computeIfAbsent(advancement.id(), id -> new LinkedHashSet<>());
         if (!criteria.add(criterion)) {
             return false;
         }
 
-        boolean completed = !wasComplete && isComplete(advancement);
+        boolean completed = !wasComplete && meetsRequirements(advancement);
         if (completed) {
             unlockTimes.putIfAbsent(advancement.id(), Instant.now());
         }
 
-        save();
+        if (saveProgress) {
+            save();
+        }
         return completed;
     }
 
@@ -101,6 +107,24 @@ public class ClientProgressManager {
     }
 
     public static boolean isComplete(ClientAdvancement advancement) {
+        return unlockTimes.containsKey(advancement.id()) || meetsRequirements(advancement);
+    }
+
+    static void preserveCompletions(Iterable<ClientAdvancement> advancements) {
+        boolean changed = false;
+        Instant now = Instant.now();
+        for (ClientAdvancement advancement : advancements) {
+            if (!unlockTimes.containsKey(advancement.id()) && meetsRequirements(advancement)) {
+                unlockTimes.put(advancement.id(), now);
+                changed = true;
+            }
+        }
+        if (changed) {
+            save();
+        }
+    }
+
+    private static boolean meetsRequirements(ClientAdvancement advancement) {
         Set<String> criteria = completedCriteria.get(advancement.id());
         if (criteria == null || advancement.requirements().isEmpty()) {
             return false;

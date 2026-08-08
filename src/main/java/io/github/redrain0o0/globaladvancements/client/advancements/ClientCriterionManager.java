@@ -78,13 +78,13 @@ public final class ClientCriterionManager {
     }
 
     public static void trigger(Identifier trigger, JsonObject event) {
-        trigger(trigger, event, true, true);
+        trigger(trigger, event, true, true, true);
     }
 
-    private static void trigger(Identifier trigger, JsonObject event, boolean showToast, boolean refreshScreen) {
+    private static boolean trigger(Identifier trigger, JsonObject event, boolean showToast, boolean refreshScreen, boolean saveProgress) {
         Evaluator evaluator = EVALUATORS.get(trigger);
         if (evaluator == null) {
-            return;
+            return false;
         }
 
         boolean changed = false;
@@ -95,7 +95,9 @@ public final class ClientCriterionManager {
                 }
 
                 boolean alreadyComplete = ClientProgressManager.completedCriteria(binding.advancement().id()).contains(binding.name());
-                if (ClientProgressManager.completeCriterion(binding.advancement(), binding.name()) && showToast) {
+                if (ClientProgressManager.completeCriterion(binding.advancement(), binding.name(), false)
+                        && showToast
+                        && (!MINECRAFT_ADVANCEMENT.equals(trigger) || !ClientAdvancementManager.isVanilla(binding.advancement().id()))) {
                     showToast(binding.advancement());
                 }
                 changed |= !alreadyComplete;
@@ -103,9 +105,13 @@ public final class ClientCriterionManager {
                 Globaladvancements.LOGGER.warn("Failed to evaluate client criterion '{}' for '{}'", binding.name(), binding.advancement().id(), exception);
             }
         }
+        if (changed && saveProgress) {
+            ClientProgressManager.save();
+        }
         if (changed && refreshScreen) {
             GlobalAdvancementsScreen.refreshIfOpen();
         }
+        return changed;
     }
 
     public static void updateMinecraftAdvancements(ClientboundUpdateAdvancementsPacket packet) {
@@ -113,15 +119,38 @@ public final class ClientCriterionManager {
             MINECRAFT_ADVANCEMENTS.clear();
         }
         packet.getRemoved().forEach(MINECRAFT_ADVANCEMENTS::remove);
-        packet.getProgress().forEach((advancement, progress) -> {
-            JsonObject event = minecraftAdvancementEvent(advancement, progress);
-            MINECRAFT_ADVANCEMENTS.put(advancement, event);
-            trigger(MINECRAFT_ADVANCEMENT, event, !packet.shouldReset() && packet.shouldShowAdvancements(), true);
-        });
+        boolean progressChanged = false;
+        for (Map.Entry<Identifier, AdvancementProgress> entry : packet.getProgress().entrySet()) {
+            JsonObject event = minecraftAdvancementEvent(entry.getKey(), entry.getValue());
+            MINECRAFT_ADVANCEMENTS.put(entry.getKey(), event);
+            progressChanged |= trigger(
+                    MINECRAFT_ADVANCEMENT,
+                    event,
+                    !packet.shouldReset() && packet.shouldShowAdvancements(),
+                    false,
+                    false
+            );
+        }
+        if (progressChanged) {
+            ClientProgressManager.save();
+        }
+        if (progressChanged) {
+            GlobalAdvancementsScreen.refreshIfOpen();
+        }
     }
 
     public static void replayMinecraftAdvancements() {
-        MINECRAFT_ADVANCEMENTS.values().forEach(event -> trigger(MINECRAFT_ADVANCEMENT, event, false, false));
+        boolean changed = false;
+        for (JsonObject event : MINECRAFT_ADVANCEMENTS.values()) {
+            changed |= trigger(MINECRAFT_ADVANCEMENT, event, false, false, false);
+        }
+        if (changed) {
+            ClientProgressManager.save();
+        }
+    }
+
+    public static void clearMinecraftAdvancements() {
+        MINECRAFT_ADVANCEMENTS.clear();
     }
 
     private static JsonObject minecraftAdvancementEvent(Identifier advancement, AdvancementProgress progress) {

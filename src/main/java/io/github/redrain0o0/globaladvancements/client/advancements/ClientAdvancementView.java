@@ -53,6 +53,11 @@ public class ClientAdvancementView extends ClientAdvancements {
             for (String criterion : ClientProgressManager.completedCriteria(advancement.id())) {
                 advancementProgress.grantProgress(criterion);
             }
+            if (unlocked && !advancementProgress.isDone()) {
+                for (String criterion : advancement.criterion()) {
+                    advancementProgress.grantProgress(criterion);
+                }
+            }
             progress.put(advancement.id(), advancementProgress);
         }
 

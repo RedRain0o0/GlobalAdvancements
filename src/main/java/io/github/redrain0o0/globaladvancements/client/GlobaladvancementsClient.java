@@ -7,6 +7,7 @@ import io.github.redrain0o0.globaladvancements.client.advancements.ClientProgres
 import io.github.redrain0o0.globaladvancements.client.criterion.OpenInventoryCriterionClient;
 import io.github.redrain0o0.globaladvancements.network.ClientboundCriterionEventPayload;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.minecraft.client.Minecraft;
@@ -28,6 +29,12 @@ public class GlobaladvancementsClient implements ClientModInitializer {
 
         ClientPlayNetworking.registerGlobalReceiver(ClientboundCriterionEventPayload.TYPE, (payload, context) ->
                 context.client().execute(() -> ClientCriterionManager.trigger(payload.trigger(), payload.value()))
+        );
+        ClientPlayConnectionEvents.JOIN.register((handler, sender, client) ->
+                ClientAdvancementManager.loadVanillaAdvancements(handler.registryAccess())
+        );
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, client) ->
+                ClientCriterionManager.clearMinecraftAdvancements()
         );
     }
 
