@@ -20,6 +20,7 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
 import net.minecraft.world.phys.Vec3;
 
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -115,6 +116,7 @@ public final class ClientCriterionManager {
     }
 
     public static void updateMinecraftAdvancements(ClientboundUpdateAdvancementsPacket packet) {
+        boolean ignoreExisting = ClientProgressManager.shouldIgnoreExistingVanillaProgress();
         if (packet.shouldReset()) {
             MINECRAFT_ADVANCEMENTS.clear();
         }
@@ -122,10 +124,13 @@ public final class ClientCriterionManager {
         boolean progressChanged = false;
         for (Map.Entry<Identifier, AdvancementProgress> entry : packet.getProgress().entrySet()) {
             JsonObject event = minecraftAdvancementEvent(entry.getKey(), entry.getValue());
-            MINECRAFT_ADVANCEMENTS.put(entry.getKey(), event);
+            JsonObject previous = MINECRAFT_ADVANCEMENTS.put(entry.getKey(), event);
+            if (ignoreExisting && packet.shouldReset()) {
+                continue;
+            }
             progressChanged |= trigger(
                     MINECRAFT_ADVANCEMENT,
-                    event,
+                    ignoreExisting ? minecraftAdvancementChanges(event, previous) : event,
                     !packet.shouldReset() && packet.shouldShowAdvancements(),
                     false,
                     false
@@ -140,6 +145,9 @@ public final class ClientCriterionManager {
     }
 
     public static void replayMinecraftAdvancements() {
+        if (ClientProgressManager.shouldIgnoreExistingVanillaProgress()) {
+            return;
+        }
         boolean changed = false;
         for (JsonObject event : MINECRAFT_ADVANCEMENTS.values()) {
             changed |= trigger(MINECRAFT_ADVANCEMENT, event, false, false, false);
@@ -163,6 +171,28 @@ public final class ClientCriterionManager {
         }
         event.add("criteria", criteria);
         return event;
+    }
+
+    private static JsonObject minecraftAdvancementChanges(JsonObject event, JsonObject previous) {
+        if (previous == null) {
+            return event;
+        }
+
+        JsonObject changes = new JsonObject();
+        changes.addProperty("advancement", event.get("advancement").getAsString());
+        changes.addProperty("complete", event.get("complete").getAsBoolean() && !previous.get("complete").getAsBoolean());
+        HashSet<String> previousCriteria = new HashSet<>();
+        for (JsonElement criterion : previous.getAsJsonArray("criteria")) {
+            previousCriteria.add(criterion.getAsString());
+        }
+        JsonArray criteria = new JsonArray();
+        for (JsonElement criterion : event.getAsJsonArray("criteria")) {
+            if (!previousCriteria.contains(criterion.getAsString())) {
+                criteria.add(criterion.deepCopy());
+            }
+        }
+        changes.add("criteria", criteria);
+        return changes;
     }
 
     private static boolean matchesItem(JsonObject conditions, String field, Identifier value) {

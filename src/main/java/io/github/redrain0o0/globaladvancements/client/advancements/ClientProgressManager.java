@@ -30,12 +30,14 @@ public class ClientProgressManager {
     private static final Gson GSON = new Gson();
     private static final Map<Identifier, Set<String>> completedCriteria = new LinkedHashMap<>();
     private static final Map<Identifier, Instant> unlockTimes = new LinkedHashMap<>();
+    private static boolean ignoreExistingVanillaProgress;
 
     public static void load() {
         completedCriteria.clear();
         unlockTimes.clear();
+        ignoreExistingVanillaProgress = false;
 
-        JsonObject file = readFile();
+        JsonObject file = readFile(getFile());
         JsonObject advancements = getObject(file, "completed_criteria");
 
         if (advancements == null) {
@@ -71,6 +73,11 @@ public class ClientProgressManager {
                     Globaladvancements.LOGGER.warn("Ignoring invalid unlock time for '{}'", entry.getKey(), exception);
                 }
             }
+        }
+
+        JsonElement ignoreExisting = file.get("ignore_existing_vanilla_progress");
+        if (ignoreExisting != null && ignoreExisting.isJsonPrimitive() && ignoreExisting.getAsJsonPrimitive().isBoolean()) {
+            ignoreExistingVanillaProgress = ignoreExisting.getAsBoolean();
         }
 
         Globaladvancements.LOGGER.info("Loaded {} completed client criteria and {} unlock times", criteriaCount, unlockTimes.size());
@@ -148,10 +155,51 @@ public class ClientProgressManager {
     }
 
     public static void save() {
+        writeFile(createProgressFile(completedCriteria, unlockTimes, ignoreExistingVanillaProgress), getFile());
+    }
+
+    public static boolean resetWithBackup() {
+        if (!writeFile(createProgressFile(completedCriteria, unlockTimes, ignoreExistingVanillaProgress), getBackupFile())) {
+            return false;
+        }
+        if (!writeFile(createProgressFile(Map.of(), Map.of(), true), getFile())) {
+            return false;
+        }
+
+        completedCriteria.clear();
+        unlockTimes.clear();
+        ignoreExistingVanillaProgress = true;
+        return true;
+    }
+
+    public static boolean restoreBackup() {
+        JsonObject backup = readFile(getBackupFile());
+        if (!isValidProgressFile(backup) || !writeFile(backup, getFile())) {
+            return false;
+        }
+
+        load();
+        if (!ignoreExistingVanillaProgress) {
+            ClientCriterionManager.clearMinecraftAdvancements();
+        }
+        return true;
+    }
+
+    public static boolean hasBackup() {
+        return getBackupFile().isFile();
+    }
+
+    public static boolean shouldIgnoreExistingVanillaProgress() {
+        return ignoreExistingVanillaProgress;
+    }
+
+    private static JsonObject createProgressFile(Map<Identifier, ? extends Set<String>> criteriaByAdvancement,
+                                                 Map<Identifier, Instant> timesByAdvancement,
+                                                 boolean ignoreExistingProgress) {
         JsonObject advancementsFile = new JsonObject();
         JsonObject advancements = new JsonObject();
 
-        for (Map.Entry<Identifier, Set<String>> advancement : completedCriteria.entrySet()) {
+        for (Map.Entry<Identifier, ? extends Set<String>> advancement : criteriaByAdvancement.entrySet()) {
             JsonArray criteria = new JsonArray();
             for (String criterion : advancement.getValue()) {
                 criteria.add(criterion);
@@ -160,16 +208,20 @@ public class ClientProgressManager {
         }
 
         JsonObject unlockedAt = new JsonObject();
-        for (Map.Entry<Identifier, Instant> entry : unlockTimes.entrySet()) {
+        for (Map.Entry<Identifier, Instant> entry : timesByAdvancement.entrySet()) {
             unlockedAt.addProperty(entry.getKey().toString(), entry.getValue().toString());
         }
 
         advancementsFile.add("advancements", new JsonArray());
         advancementsFile.add("completed_criteria", advancements);
         advancementsFile.add("unlocked_at", unlockedAt);
+        advancementsFile.addProperty("ignore_existing_vanilla_progress", ignoreExistingProgress);
         advancementsFile.addProperty("dataVersion", 4790);
+        return advancementsFile;
+    }
 
-        Path destination = getFile().toPath().toAbsolutePath();
+    private static boolean writeFile(JsonObject progress, File file) {
+        Path destination = file.toPath().toAbsolutePath();
         Path temporary = null;
         try {
             Path directory = destination.getParent();
@@ -178,7 +230,7 @@ public class ClientProgressManager {
             }
             temporary = Files.createTempFile(directory, destination.getFileName().toString(), ".tmp");
             try (BufferedWriter writer = Files.newBufferedWriter(temporary, StandardCharsets.UTF_8)) {
-                GSON.toJson(advancementsFile, writer);
+                GSON.toJson(progress, writer);
             }
 
             try {
@@ -187,8 +239,10 @@ public class ClientProgressManager {
                 Files.move(temporary, destination, StandardCopyOption.REPLACE_EXISTING);
             }
             temporary = null;
+            return true;
         } catch (IOException exception) {
             Globaladvancements.LOGGER.warn("Failed to save client advancement progress", exception);
+            return false;
         } finally {
             if (temporary != null) {
                 try {
@@ -200,8 +254,7 @@ public class ClientProgressManager {
         }
     }
 
-    private static JsonObject readFile() {
-        File file = getFile();
+    private static JsonObject readFile(File file) {
         if (!file.exists() || file.length() == 0) {
             return new JsonObject();
         }
@@ -218,8 +271,46 @@ public class ClientProgressManager {
         return new JsonObject();
     }
 
+    private static boolean isValidProgressFile(JsonObject file) {
+        JsonObject advancements = getObject(file, "completed_criteria");
+        JsonObject unlockedAt = getObject(file, "unlocked_at");
+        if (advancements == null || unlockedAt == null) {
+            return false;
+        }
+
+        JsonElement ignoreExisting = file.get("ignore_existing_vanilla_progress");
+        if (ignoreExisting != null && (!ignoreExisting.isJsonPrimitive() || !ignoreExisting.getAsJsonPrimitive().isBoolean())) {
+            return false;
+        }
+
+        try {
+            for (Map.Entry<String, JsonElement> advancement : advancements.entrySet()) {
+                Identifier.parse(advancement.getKey());
+                if (!advancement.getValue().isJsonArray()) {
+                    return false;
+                }
+                for (JsonElement criterion : advancement.getValue().getAsJsonArray()) {
+                    if (!criterion.isJsonPrimitive() || !criterion.getAsJsonPrimitive().isString()) {
+                        return false;
+                    }
+                }
+            }
+            for (Map.Entry<String, JsonElement> entry : unlockedAt.entrySet()) {
+                Identifier.parse(entry.getKey());
+                Instant.parse(entry.getValue().getAsString());
+            }
+            return true;
+        } catch (RuntimeException exception) {
+            return false;
+        }
+    }
+
     private static File getFile() {
         return new File(Minecraft.getInstance().gameDirectory, "advancements.json");
+    }
+
+    private static File getBackupFile() {
+        return new File(Minecraft.getInstance().gameDirectory, "advancements.backup.json");
     }
 
     private static JsonObject getObject(JsonObject object, String name) {
