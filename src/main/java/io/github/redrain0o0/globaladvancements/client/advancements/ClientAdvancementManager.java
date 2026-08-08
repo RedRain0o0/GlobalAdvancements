@@ -6,7 +6,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.mojang.serialization.JsonOps;
 import io.github.redrain0o0.globaladvancements.Globaladvancements;
-import io.github.redrain0o0.globaladvancements.network.ServerboundCriterionMappingsPayload.CriterionMapping;
+import io.github.redrain0o0.globaladvancements.client.screen.GlobalAdvancementsScreen;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.minecraft.advancements.DisplayInfo;
 import net.minecraft.core.Holder;
@@ -26,10 +26,15 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 public class ClientAdvancementManager implements SimpleSynchronousResourceReloadListener {
     public static final ClientAdvancementManager INSTANCE = new ClientAdvancementManager();
@@ -39,9 +44,7 @@ public class ClientAdvancementManager implements SimpleSynchronousResourceReload
             JsonOps.INSTANCE,
             HolderLookup.Provider.create(BuiltInRegistries.REGISTRY.stream().map(registry -> registry))
     );
-    private static final Map<Identifier, ClientAdvancement> ADVANCEMENTS = new LinkedHashMap<>();
-    private static final List<ClientAdvancement> ROOTS = new ArrayList<>();
-    private static final Map<Identifier, List<ClientAdvancement>> CHILDREN = new LinkedHashMap<>();
+    private static volatile Snapshot snapshot = Snapshot.EMPTY;
 
     private ClientAdvancementManager() {}
 
@@ -52,100 +55,73 @@ public class ClientAdvancementManager implements SimpleSynchronousResourceReload
 
     @Override
     public void onResourceManagerReload(ResourceManager resourceManager) {
-        ADVANCEMENTS.clear();
-
+        Map<Identifier, ClientAdvancement> parsed = new LinkedHashMap<>();
         Map<Identifier, Resource> resources = resourceManager.listResources(
                 ADVANCEMENTS_FOLDER,
                 id -> id.getPath().endsWith(".json")
         );
 
         for (Map.Entry<Identifier, Resource> entry : resources.entrySet()) {
-            Identifier fileId = entry.getKey();
-            Resource resource = entry.getValue();
-            Identifier advancementId = getAdvancementId(fileId);
-
-            loadAdvancement(advancementId, resource).ifPresent((advancement) ->
-                    ADVANCEMENTS.put(advancement.id(), advancement)
+            Identifier advancementId = getAdvancementId(entry.getKey());
+            loadAdvancement(advancementId, entry.getValue()).ifPresent(advancement ->
+                    parsed.put(advancement.id(), advancement)
             );
         }
 
-        buildTree();
+        Map<Identifier, ClientAdvancement> validated = validateParents(parsed);
+        Snapshot replacement = Snapshot.create(validated);
+        snapshot = replacement;
+        ClientCriterionManager.replayMinecraftAdvancements();
+        GlobalAdvancementsScreen.refreshIfOpen();
 
-        Globaladvancements.LOGGER.info("Loaded {} client advancements with {} roots", ADVANCEMENTS.size(), ROOTS.size());
-        logTreeSummary();
+        Globaladvancements.LOGGER.info("Loaded {} client advancements with {} roots", replacement.advancements().size(), replacement.roots().size());
+        for (ClientAdvancement root : replacement.roots()) {
+            Globaladvancements.LOGGER.info("Root '{}' has {} children", root.id(), replacement.children().getOrDefault(root.id(), List.of()).size());
+        }
     }
 
     public static Collection<ClientAdvancement> all() {
-        return ADVANCEMENTS.values();
+        return snapshot.advancements().values();
     }
 
-    public static List<CriterionMapping> criterionMappings() {
-        List<CriterionMapping> criterionMappings = new ArrayList<>();
-
-        for (ClientAdvancement advancement : ADVANCEMENTS.values()) {
-            for (String criterionId : advancement.criterion()) {
-                ClientCriterionManager.getMapping(criterionId, advancement.id()).ifPresent(criterionMappings::add);
-            }
-        }
-
-        return criterionMappings;
+    public static List<ClientCriterionBinding> bindings(Identifier trigger) {
+        return snapshot.bindings().getOrDefault(trigger, List.of());
     }
 
     public static List<ClientAdvancement> roots() {
-        return ROOTS;
+        return snapshot.roots();
     }
 
     public static List<ClientAdvancement> childrenOf(Identifier parentId) {
-        return CHILDREN.getOrDefault(parentId, List.of());
+        return snapshot.children().getOrDefault(parentId, List.of());
     }
 
     public static int size() {
-        return ADVANCEMENTS.size();
+        return snapshot.advancements().size();
     }
 
     public static Optional<ClientAdvancement> get(Identifier id) {
-        return Optional.ofNullable(ADVANCEMENTS.get(id));
-    }
-
-    private static void buildTree() {
-        ROOTS.clear();
-        CHILDREN.clear();
-
-        for (ClientAdvancement advancement : ADVANCEMENTS.values()) {
-            Optional<Identifier> parent = advancement.parent();
-
-            if (parent.isEmpty()) {
-                ROOTS.add(advancement);
-                continue;
-            }
-
-            Identifier parentId = parent.get();
-            if (!ADVANCEMENTS.containsKey(parentId)) {
-                ROOTS.add(advancement);
-                Globaladvancements.LOGGER.warn("Client advancement '{}' has missing parent '{}'", advancement.id(), parentId);
-                continue;
-            }
-
-            CHILDREN.computeIfAbsent(parentId, id -> new ArrayList<>()).add(advancement);
-        }
-    }
-
-    private static void logTreeSummary() {
-        for (ClientAdvancement root : ROOTS) {
-            Globaladvancements.LOGGER.info("Root '{}' has {} children", root.id(), childrenOf(root.id()).size());
-        }
+        return Optional.ofNullable(snapshot.advancements().get(id));
     }
 
     private static Optional<ClientAdvancement> loadAdvancement(Identifier advancementId, Resource resource) {
         try (BufferedReader reader = resource.openAsReader()) {
             JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
-
             Optional<Identifier> parent = getParent(json);
             Optional<DisplayInfo> display = getDisplay(advancementId, json);
-            List<String> criterion = getCriterion(json);
-            List<List<String>> requirements = getRequirements(json, criterion);
+            if (json.has("display") && display.isEmpty()) {
+                throw new IllegalArgumentException("Invalid display");
+            }
+            Map<String, ClientCriterion> criteria = getCriteria(json);
+            List<List<String>> requirements = getRequirements(json, criteria);
 
-            return Optional.of(new ClientAdvancement(advancementId, parent, display, criterion, requirements));
+            return Optional.of(new ClientAdvancement(
+                    advancementId,
+                    parent,
+                    display,
+                    criteria,
+                    requirements
+            ));
         } catch (IOException | RuntimeException exception) {
             Globaladvancements.LOGGER.warn("Failed to load client advancement '{}'", advancementId, exception);
             return Optional.empty();
@@ -179,7 +155,7 @@ public class ClientAdvancementManager implements SimpleSynchronousResourceReload
         }
 
         return DisplayInfo.CODEC.parse(DISPLAY_OPS, display)
-                .resultOrPartial((error) -> Globaladvancements.LOGGER.warn("Failed to parse display for '{}': {}", advancementId, error))
+                .resultOrPartial(error -> Globaladvancements.LOGGER.warn("Failed to parse display for '{}': {}", advancementId, error))
                 .map(ClientAdvancementManager::bindIcon);
     }
 
@@ -217,36 +193,164 @@ public class ClientAdvancementManager implements SimpleSynchronousResourceReload
         }
     }
 
-    private static List<String> getCriterion(JsonObject json) {
-        List<String> criterion = new ArrayList<>();
-
-        if (!json.has("criterion")) {
-            return criterion;
+    private static Map<String, ClientCriterion> getCriteria(JsonObject json) {
+        if (!json.has("criteria")) {
+            return Map.of();
         }
 
-        JsonArray criterionArray = json.getAsJsonArray("criterion");
-        for (JsonElement criterionElement : criterionArray) {
-            criterion.add(criterionElement.getAsString());
-        }
+        Map<String, ClientCriterion> criteria = new LinkedHashMap<>();
+        JsonObject definitions = json.getAsJsonObject("criteria");
+        for (Map.Entry<String, JsonElement> entry : definitions.entrySet()) {
+            String name = entry.getKey();
+            if (name.isEmpty()) {
+                throw new IllegalArgumentException("Criterion names cannot be empty");
+            }
 
-        return criterion;
+            JsonObject definition = entry.getValue().getAsJsonObject();
+            if (!definition.has("trigger")) {
+                throw new IllegalArgumentException("Criterion '" + name + "' is missing a trigger");
+            }
+
+            Identifier trigger = Identifier.parse(definition.get("trigger").getAsString());
+            JsonObject conditions = definition.has("conditions")
+                    ? definition.getAsJsonObject("conditions")
+                    : new JsonObject();
+            criteria.put(name, new ClientCriterion(trigger, conditions));
+        }
+        return criteria;
     }
 
-    private static List<List<String>> getRequirements(JsonObject json, List<String> criterion) {
+    private static List<List<String>> getRequirements(JsonObject json, Map<String, ClientCriterion> criteria) {
         if (!json.has("requirements")) {
-            return criterion.isEmpty() ? List.of() : List.of(List.copyOf(criterion));
+            return criteria.keySet().stream().map(List::of).toList();
         }
 
         List<List<String>> requirements = new ArrayList<>();
+        Set<String> referenced = new LinkedHashSet<>();
         JsonArray requirementArray = json.getAsJsonArray("requirements");
         for (JsonElement requirementElement : requirementArray) {
-            List<String> requirement = new ArrayList<>();
-            for (JsonElement criterionElement : requirementElement.getAsJsonArray()) {
-                requirement.add(criterionElement.getAsString());
+            JsonArray names = requirementElement.getAsJsonArray();
+            if (names.isEmpty()) {
+                throw new IllegalArgumentException("Requirement groups cannot be empty");
             }
-            requirements.add(requirement);
+
+            List<String> requirement = new ArrayList<>();
+            for (JsonElement criterionElement : names) {
+                String name = criterionElement.getAsString();
+                if (!criteria.containsKey(name)) {
+                    throw new IllegalArgumentException("Requirement references unknown criterion '" + name + "'");
+                }
+                requirement.add(name);
+                referenced.add(name);
+            }
+            requirements.add(List.copyOf(requirement));
         }
 
-        return requirements;
+        if (!referenced.containsAll(criteria.keySet())) {
+            Set<String> missing = new LinkedHashSet<>(criteria.keySet());
+            missing.removeAll(referenced);
+            throw new IllegalArgumentException("Requirements omit criteria " + missing);
+        }
+
+        return List.copyOf(requirements);
+    }
+
+    private static Map<Identifier, ClientAdvancement> validateParents(Map<Identifier, ClientAdvancement> parsed) {
+        Map<Identifier, ClientAdvancement> validated = new LinkedHashMap<>(parsed);
+        removeMissingParents(validated);
+
+        Set<Identifier> cycles = findCycles(validated);
+        for (Identifier id : cycles) {
+            validated.remove(id);
+            Globaladvancements.LOGGER.warn("Ignoring client advancement '{}' because its parent chain contains a cycle", id);
+        }
+
+        removeMissingParents(validated);
+        return validated;
+    }
+
+    private static void removeMissingParents(Map<Identifier, ClientAdvancement> advancements) {
+        boolean removed;
+        do {
+            removed = false;
+            Iterator<Map.Entry<Identifier, ClientAdvancement>> iterator = advancements.entrySet().iterator();
+            while (iterator.hasNext()) {
+                Map.Entry<Identifier, ClientAdvancement> entry = iterator.next();
+                Optional<Identifier> parent = entry.getValue().parent();
+                if (parent.isPresent() && !advancements.containsKey(parent.get())) {
+                    iterator.remove();
+                    removed = true;
+                    Globaladvancements.LOGGER.warn("Ignoring client advancement '{}' because parent '{}' is unavailable", entry.getKey(), parent.get());
+                }
+            }
+        } while (removed);
+    }
+
+    private static Set<Identifier> findCycles(Map<Identifier, ClientAdvancement> advancements) {
+        Set<Identifier> cycles = new LinkedHashSet<>();
+        Set<Identifier> resolved = new HashSet<>();
+
+        for (Identifier start : advancements.keySet()) {
+            if (resolved.contains(start)) {
+                continue;
+            }
+
+            List<Identifier> path = new ArrayList<>();
+            Map<Identifier, Integer> positions = new LinkedHashMap<>();
+            Identifier current = start;
+            while (current != null && advancements.containsKey(current) && !resolved.contains(current)) {
+                Integer position = positions.putIfAbsent(current, path.size());
+                if (position != null) {
+                    cycles.addAll(path.subList(position, path.size()));
+                    break;
+                }
+
+                path.add(current);
+                current = advancements.get(current).parent().orElse(null);
+            }
+            resolved.addAll(path);
+        }
+
+        return cycles;
+    }
+
+    private record Snapshot(Map<Identifier, ClientAdvancement> advancements,
+                            List<ClientAdvancement> roots,
+                            Map<Identifier, List<ClientAdvancement>> children,
+                            Map<Identifier, List<ClientCriterionBinding>> bindings) {
+        private static final Snapshot EMPTY = new Snapshot(Map.of(), List.of(), Map.of(), Map.of());
+
+        private static Snapshot create(Map<Identifier, ClientAdvancement> advancements) {
+            Map<Identifier, ClientAdvancement> advancementSnapshot = Collections.unmodifiableMap(new LinkedHashMap<>(advancements));
+            List<ClientAdvancement> roots = new ArrayList<>();
+            Map<Identifier, List<ClientAdvancement>> children = new LinkedHashMap<>();
+            Map<Identifier, List<ClientCriterionBinding>> bindings = new LinkedHashMap<>();
+
+            for (ClientAdvancement advancement : advancementSnapshot.values()) {
+                if (advancement.parent().isEmpty()) {
+                    roots.add(advancement);
+                } else {
+                    children.computeIfAbsent(advancement.parent().get(), id -> new ArrayList<>()).add(advancement);
+                }
+
+                for (Map.Entry<String, ClientCriterion> criterion : advancement.criteria().entrySet()) {
+                    ClientCriterionBinding binding = new ClientCriterionBinding(advancement, criterion.getKey(), criterion.getValue());
+                    bindings.computeIfAbsent(criterion.getValue().trigger(), id -> new ArrayList<>()).add(binding);
+                }
+            }
+
+            return new Snapshot(
+                    advancementSnapshot,
+                    List.copyOf(roots),
+                    immutableLists(children),
+                    immutableLists(bindings)
+            );
+        }
+
+        private static <K, V> Map<K, List<V>> immutableLists(Map<K, List<V>> values) {
+            Map<K, List<V>> copy = new LinkedHashMap<>();
+            values.forEach((key, value) -> copy.put(key, List.copyOf(value)));
+            return Collections.unmodifiableMap(copy);
+        }
     }
 }

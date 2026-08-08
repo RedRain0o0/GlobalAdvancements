@@ -11,5 +11,13 @@
     "title": {
       "translate": "advancements.husbandry.root.title"
     }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "globaladvancements:minecraft_advancement",
+      "conditions": {
+        "advancement": "minecraft:husbandry/root"
+      }
+    }
   }
 }

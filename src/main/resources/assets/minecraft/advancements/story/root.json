@@ -11,5 +11,13 @@
     "title": {
       "translate": "advancements.story.root.title"
     }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "globaladvancements:minecraft_advancement",
+      "conditions": {
+        "advancement": "minecraft:story/root"
+      }
+    }
   }
 }

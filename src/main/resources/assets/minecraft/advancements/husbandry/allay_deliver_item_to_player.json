@@ -12,5 +12,13 @@
     "title": {
       "translate": "advancements.husbandry.allay_deliver_item_to_player.title"
     }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "globaladvancements:minecraft_advancement",
+      "conditions": {
+        "advancement": "minecraft:husbandry/allay_deliver_item_to_player"
+      }
+    }
   }
 }

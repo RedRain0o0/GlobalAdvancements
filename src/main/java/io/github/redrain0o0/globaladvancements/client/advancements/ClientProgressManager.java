@@ -9,12 +9,15 @@ import io.github.redrain0o0.globaladvancements.Globaladvancements;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.Identifier;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.Reader;
-import java.io.Writer;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -33,7 +36,7 @@ public class ClientProgressManager {
         unlockTimes.clear();
 
         JsonObject file = readFile();
-        JsonObject advancements = file.getAsJsonObject("completed_criteria");
+        JsonObject advancements = getObject(file, "completed_criteria");
 
         if (advancements == null) {
             save();
@@ -42,15 +45,24 @@ public class ClientProgressManager {
 
         int criteriaCount = 0;
         for (Map.Entry<String, JsonElement> advancement : advancements.entrySet()) {
-            if (!advancement.getValue().isJsonArray()) continue;
+            if (!advancement.getValue().isJsonArray()) {
+                continue;
+            }
 
-            Set<String> criteria = completedCriteria.computeIfAbsent(Identifier.parse(advancement.getKey()), id -> new LinkedHashSet<>());
-            for (JsonElement criterion : advancement.getValue().getAsJsonArray()) {
-                if (criteria.add(criterion.getAsString())) criteriaCount++;
+            try {
+                Identifier advancementId = Identifier.parse(advancement.getKey());
+                Set<String> criteria = completedCriteria.computeIfAbsent(advancementId, id -> new LinkedHashSet<>());
+                for (JsonElement criterion : advancement.getValue().getAsJsonArray()) {
+                    if (criteria.add(criterion.getAsString())) {
+                        criteriaCount++;
+                    }
+                }
+            } catch (RuntimeException exception) {
+                Globaladvancements.LOGGER.warn("Ignoring invalid client advancement progress for '{}'", advancement.getKey(), exception);
             }
         }
 
-        JsonObject unlockedAt = file.getAsJsonObject("unlocked_at");
+        JsonObject unlockedAt = getObject(file, "unlocked_at");
         if (unlockedAt != null) {
             for (Map.Entry<String, JsonElement> entry : unlockedAt.entrySet()) {
                 try {
@@ -71,16 +83,21 @@ public class ClientProgressManager {
             return false;
         }
 
-        if (!wasComplete && isComplete(advancement)) {
+        boolean completed = !wasComplete && isComplete(advancement);
+        if (completed) {
             unlockTimes.putIfAbsent(advancement.id(), Instant.now());
         }
 
         save();
-        return true;
+        return completed;
     }
 
     public static Optional<Instant> unlockedAt(Identifier advancementId) {
         return Optional.ofNullable(unlockTimes.get(advancementId));
+    }
+
+    public static Set<String> completedCriteria(Identifier advancementId) {
+        return Set.copyOf(completedCriteria.getOrDefault(advancementId, Set.of()));
     }
 
     public static boolean isComplete(ClientAdvancement advancement) {
@@ -90,12 +107,20 @@ public class ClientProgressManager {
         }
 
         for (List<String> requirement : advancement.requirements()) {
-            if (criteria.containsAll(requirement)) {
-                return true;
+            boolean groupComplete = false;
+            for (String criterion : requirement) {
+                if (criteria.contains(criterion)) {
+                    groupComplete = true;
+                    break;
+                }
+            }
+
+            if (!groupComplete) {
+                return false;
             }
         }
 
-        return false;
+        return true;
     }
 
     public static void save() {
@@ -120,10 +145,34 @@ public class ClientProgressManager {
         advancementsFile.add("unlocked_at", unlockedAt);
         advancementsFile.addProperty("dataVersion", 4790);
 
-        try (Writer writer = new FileWriter(getFile())) {
-            GSON.toJson(advancementsFile, writer);
+        Path destination = getFile().toPath().toAbsolutePath();
+        Path temporary = null;
+        try {
+            Path directory = destination.getParent();
+            if (directory != null) {
+                Files.createDirectories(directory);
+            }
+            temporary = Files.createTempFile(directory, destination.getFileName().toString(), ".tmp");
+            try (BufferedWriter writer = Files.newBufferedWriter(temporary, StandardCharsets.UTF_8)) {
+                GSON.toJson(advancementsFile, writer);
+            }
+
+            try {
+                Files.move(temporary, destination, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException exception) {
+                Files.move(temporary, destination, StandardCopyOption.REPLACE_EXISTING);
+            }
+            temporary = null;
         } catch (IOException exception) {
             Globaladvancements.LOGGER.warn("Failed to save client advancement progress", exception);
+        } finally {
+            if (temporary != null) {
+                try {
+                    Files.deleteIfExists(temporary);
+                } catch (IOException exception) {
+                    Globaladvancements.LOGGER.warn("Failed to remove temporary client advancement progress file", exception);
+                }
+            }
         }
     }
 
@@ -133,7 +182,7 @@ public class ClientProgressManager {
             return new JsonObject();
         }
 
-        try (Reader reader = new FileReader(file)) {
+        try (BufferedReader reader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8)) {
             JsonElement fileContents = JsonParser.parseReader(reader);
             if (fileContents.isJsonObject()) {
                 return fileContents.getAsJsonObject();
@@ -147,5 +196,10 @@ public class ClientProgressManager {
 
     private static File getFile() {
         return new File(Minecraft.getInstance().gameDirectory, "advancements.json");
+    }
+
+    private static JsonObject getObject(JsonObject object, String name) {
+        JsonElement element = object.get(name);
+        return element != null && element.isJsonObject() ? element.getAsJsonObject() : null;
     }
 }

@@ -1,6 +1,8 @@
 package io.github.redrain0o0.globaladvancements.mixin;
 
-import io.github.redrain0o0.globaladvancements.criterion.GACriteriaTriggers;
+import io.github.redrain0o0.globaladvancements.Globaladvancements;
+import io.github.redrain0o0.globaladvancements.criterion.CriterionEventTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.inventory.FurnaceResultSlot;
@@ -15,7 +17,7 @@ public class FurnaceResultSlotMixin {
     @Inject(method = "onTake", at = @At("HEAD"))
     private void gadva$smeltedItem(Player player, ItemStack stack, CallbackInfo ci) {
         if (player instanceof ServerPlayer serverPlayer) {
-            GACriteriaTriggers.SMELT_ITEM.trigger(serverPlayer, stack);
+            Globaladvancements.sendCriterionEvent(serverPlayer, CriterionEventTypes.SMELT_ITEM, BuiltInRegistries.ITEM.getKey(stack.getItem()));
         }
     }
 }

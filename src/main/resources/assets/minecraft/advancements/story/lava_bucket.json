@@ -11,5 +11,13 @@
     "title": {
       "translate": "advancements.story.lava_bucket.title"
     }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "globaladvancements:minecraft_advancement",
+      "conditions": {
+        "advancement": "minecraft:story/lava_bucket"
+      }
+    }
   }
 }

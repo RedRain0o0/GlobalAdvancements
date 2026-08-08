@@ -1,87 +1,332 @@
 package io.github.redrain0o0.globaladvancements.client.advancements;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import io.github.redrain0o0.globaladvancements.Globaladvancements;
-import io.github.redrain0o0.globaladvancements.network.ServerboundCriterionMappingsPayload.CriterionMapping;
-import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
+import io.github.redrain0o0.globaladvancements.client.screen.GlobalAdvancementsScreen;
+import io.github.redrain0o0.globaladvancements.criterion.CriterionEventTypes;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.minecraft.advancements.AdvancementProgress;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.toasts.AdvancementToast;
+import net.minecraft.core.Registry;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.network.protocol.game.ClientboundUpdateAdvancementsPacket;
 import net.minecraft.resources.Identifier;
-import net.minecraft.server.packs.resources.Resource;
-import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.resources.ResourceKey;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
+import net.minecraft.world.phys.Vec3;
 
-import java.io.BufferedReader;
-import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 
-public class ClientCriterionManager implements SimpleSynchronousResourceReloadListener {
-    public static final ClientCriterionManager INSTANCE = new ClientCriterionManager();
+public final class ClientCriterionManager {
+    public static final Identifier OPEN_INVENTORY = Globaladvancements.createId("open_inventory");
+    public static final Identifier MINECRAFT_ADVANCEMENT = Globaladvancements.createId("minecraft_advancement");
+    public static final Identifier MINECART_DISTANCE = Globaladvancements.createId("minecart_distance");
+    public static final Identifier MINECART_RAIL = Globaladvancements.createId("minecart_rail");
 
-    private static final String CRITERIA_FOLDER = "globaladvancements/criteria";
-    private static final Map<Identifier, ClientCriterion> CRITERIA = new LinkedHashMap<>();
+    private static final Map<Identifier, Evaluator> EVALUATORS = new ConcurrentHashMap<>();
+    private static final Map<Identifier, JsonObject> MINECRAFT_ADVANCEMENTS = new LinkedHashMap<>();
+    private static boolean initialized;
+    private static AbstractMinecart activeMinecart;
+    private static Vec3 minecartStart;
 
-    private ClientCriterionManager() {}
-
-    @Override
-    public Identifier getFabricId() {
-        return Globaladvancements.createId("client_criteria");
+    private ClientCriterionManager() {
     }
 
-    @Override
-    public void onResourceManagerReload(ResourceManager resourceManager) {
-        CRITERIA.clear();
-
-        Map<Identifier, Resource> resources = resourceManager.listResources(
-                CRITERIA_FOLDER,
-                id -> id.getPath().endsWith(".json")
-        );
-
-        for (Map.Entry<Identifier, Resource> entry : resources.entrySet()) {
-            Identifier criterionId = getCriterionId(entry.getKey());
-            loadCriterion(criterionId, entry.getValue()).ifPresent((criterion) ->
-                    CRITERIA.put(criterion.id(), criterion)
-            );
+    public static synchronized void initialize() {
+        if (initialized) {
+            return;
         }
 
-        Globaladvancements.LOGGER.info("Loaded {} client criteria", CRITERIA.size());
+        initialized = true;
+        register(OPEN_INVENTORY, (conditions, event) -> true);
+        register(CriterionEventTypes.CRAFT_ITEM, (conditions, event) ->
+                matchesItem(conditions, "result", eventValue(event)));
+        register(CriterionEventTypes.SMELT_ITEM, (conditions, event) ->
+                matchesItem(conditions, "result", eventValue(event)));
+        register(CriterionEventTypes.PICKUP_ITEM, (conditions, event) ->
+                matchesItem(conditions, "item", eventValue(event)));
+        register(CriterionEventTypes.MINE_BLOCK, ClientCriterionManager::matchesBlock);
+        register(CriterionEventTypes.KILL_ENTITY, ClientCriterionManager::matchesEntity);
+        register(MINECRAFT_ADVANCEMENT, ClientCriterionManager::matchesMinecraftAdvancement);
+        register(MINECART_DISTANCE, ClientCriterionManager::matchesMinecartDistance);
+        register(MINECART_RAIL, ClientCriterionManager::matchesMinecartDistance);
+        ClientTickEvents.END_CLIENT_TICK.register(ClientCriterionManager::tickMinecartDistance);
     }
 
-    public static Optional<CriterionMapping> getMapping(String criterionId, Identifier advancementId) {
-        return Optional.ofNullable(CRITERIA.get(Identifier.parse(criterionId)))
-                .map((criterion) -> new CriterionMapping(
-                        criterion.advancementId(),
-                        criterion.criterion(),
-                        advancementId,
-                        criterion.id().toString()
-                ));
+    public static boolean register(Identifier trigger, Evaluator evaluator) {
+        Objects.requireNonNull(trigger);
+        Objects.requireNonNull(evaluator);
+        return EVALUATORS.putIfAbsent(trigger, evaluator) == null;
     }
 
-    private static Optional<ClientCriterion> loadCriterion(Identifier criterionId, Resource resource) {
-        try (BufferedReader reader = resource.openAsReader()) {
-            JsonObject json = JsonParser.parseReader(reader).getAsJsonObject();
+    public static void trigger(Identifier trigger) {
+        trigger(trigger, new JsonObject());
+    }
 
-            if (!"minecraft_advancement".equals(json.get("type").getAsString())) {
-                Globaladvancements.LOGGER.warn("Client criterion '{}' has unsupported type '{}'", criterionId, json.get("type").getAsString());
-                return Optional.empty();
+    public static void trigger(Identifier trigger, Identifier value) {
+        JsonObject event = new JsonObject();
+        event.addProperty("value", value.toString());
+        trigger(trigger, event);
+    }
+
+    public static void trigger(Identifier trigger, JsonObject event) {
+        trigger(trigger, event, true, true);
+    }
+
+    private static void trigger(Identifier trigger, JsonObject event, boolean showToast, boolean refreshScreen) {
+        Evaluator evaluator = EVALUATORS.get(trigger);
+        if (evaluator == null) {
+            return;
+        }
+
+        boolean changed = false;
+        for (ClientCriterionBinding binding : ClientAdvancementManager.bindings(trigger)) {
+            try {
+                if (!evaluator.matches(binding.criterion().conditions(), event.deepCopy())) {
+                    continue;
+                }
+
+                boolean alreadyComplete = ClientProgressManager.completedCriteria(binding.advancement().id()).contains(binding.name());
+                if (ClientProgressManager.completeCriterion(binding.advancement(), binding.name()) && showToast) {
+                    showToast(binding.advancement());
+                }
+                changed |= !alreadyComplete;
+            } catch (RuntimeException exception) {
+                Globaladvancements.LOGGER.warn("Failed to evaluate client criterion '{}' for '{}'", binding.name(), binding.advancement().id(), exception);
             }
-
-            Identifier advancementId = Identifier.parse(json.get("advancement").getAsString());
-            String criterion = json.get("criterion").getAsString();
-            return Optional.of(new ClientCriterion(criterionId, advancementId, criterion));
-        } catch (IOException | RuntimeException exception) {
-            Globaladvancements.LOGGER.warn("Failed to load client criterion '{}'", criterionId, exception);
-            return Optional.empty();
+        }
+        if (changed && refreshScreen) {
+            GlobalAdvancementsScreen.refreshIfOpen();
         }
     }
 
-    private static Identifier getCriterionId(Identifier fileId) {
-        String path = fileId.getPath();
-        path = path.substring(CRITERIA_FOLDER.length() + 1);
-        path = path.substring(0, path.length() - ".json".length());
-
-        return Identifier.fromNamespaceAndPath(fileId.getNamespace(), path);
+    public static void updateMinecraftAdvancements(ClientboundUpdateAdvancementsPacket packet) {
+        if (packet.shouldReset()) {
+            MINECRAFT_ADVANCEMENTS.clear();
+        }
+        packet.getRemoved().forEach(MINECRAFT_ADVANCEMENTS::remove);
+        packet.getProgress().forEach((advancement, progress) -> {
+            JsonObject event = minecraftAdvancementEvent(advancement, progress);
+            MINECRAFT_ADVANCEMENTS.put(advancement, event);
+            trigger(MINECRAFT_ADVANCEMENT, event, !packet.shouldReset() && packet.shouldShowAdvancements(), true);
+        });
     }
 
-    private record ClientCriterion(Identifier id, Identifier advancementId, String criterion) {}
+    public static void replayMinecraftAdvancements() {
+        MINECRAFT_ADVANCEMENTS.values().forEach(event -> trigger(MINECRAFT_ADVANCEMENT, event, false, false));
+    }
+
+    private static JsonObject minecraftAdvancementEvent(Identifier advancement, AdvancementProgress progress) {
+        JsonObject event = new JsonObject();
+        event.addProperty("advancement", advancement.toString());
+        event.addProperty("complete", progress.isDone());
+        JsonArray criteria = new JsonArray();
+        for (String criterion : progress.getCompletedCriteria()) {
+            criteria.add(criterion);
+        }
+        event.add("criteria", criteria);
+        return event;
+    }
+
+    private static boolean matchesItem(JsonObject conditions, String field, Identifier value) {
+        if (value == null) {
+            return false;
+        }
+
+        String actualField = conditions.has(field) ? field : "item";
+        return matchesRegistry(conditions.get(actualField), value, BuiltInRegistries.ITEM, Registries.ITEM);
+    }
+
+    private static boolean matchesBlock(JsonObject conditions, JsonObject event) {
+        Identifier value = eventValue(event);
+        if (value == null) {
+            return false;
+        }
+
+        JsonElement condition = conditions.has("blocks") ? conditions.get("blocks") : conditions.get("block");
+        return matchesRegistry(condition, value, BuiltInRegistries.BLOCK, Registries.BLOCK);
+    }
+
+    private static boolean matchesEntity(JsonObject conditions, JsonObject event) {
+        Identifier value = eventValue(event);
+        if (value == null || !matchesRegistry(conditions.get("entity"), value, BuiltInRegistries.ENTITY_TYPE, Registries.ENTITY_TYPE)) {
+            return false;
+        }
+
+        if (!conditions.has("category")) {
+            return true;
+        }
+
+        return BuiltInRegistries.ENTITY_TYPE.getOptional(value)
+                .map(type -> matchesText(conditions.get("category"), type.getCategory().getSerializedName()))
+                .orElse(false);
+    }
+
+    private static boolean matchesMinecraftAdvancement(JsonObject conditions, JsonObject event) {
+        if (!isString(conditions.get("advancement")) || !isString(event.get("advancement"))) {
+            return false;
+        }
+
+        Identifier expected = Identifier.tryParse(conditions.get("advancement").getAsString());
+        Identifier actual = Identifier.tryParse(event.get("advancement").getAsString());
+        if (expected == null || !expected.equals(actual)) {
+            return false;
+        }
+
+        if (!conditions.has("criterion")) {
+            return event.has("complete") && isBoolean(event.get("complete")) && event.get("complete").getAsBoolean();
+        }
+
+        if (!isString(conditions.get("criterion")) || !event.has("criteria") || !event.get("criteria").isJsonArray()) {
+            return false;
+        }
+
+        String expectedCriterion = conditions.get("criterion").getAsString();
+        for (JsonElement completedCriterion : event.getAsJsonArray("criteria")) {
+            if (isString(completedCriterion) && expectedCriterion.equals(completedCriterion.getAsString())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean matchesMinecartDistance(JsonObject conditions, JsonObject event) {
+        if (!isNumber(event.get("distance"))) {
+            return false;
+        }
+
+        double distance = event.get("distance").getAsDouble();
+        if (!conditions.has("distance")) {
+            return distance > 0.0;
+        }
+
+        JsonElement requirement = conditions.get("distance");
+        if (isNumber(requirement)) {
+            return distance >= requirement.getAsDouble();
+        }
+
+        if (!requirement.isJsonObject()) {
+            return false;
+        }
+
+        JsonObject range = requirement.getAsJsonObject();
+        if (range.has("min") && (!isNumber(range.get("min")) || distance < range.get("min").getAsDouble())) {
+            return false;
+        }
+        return !range.has("max") || isNumber(range.get("max")) && distance <= range.get("max").getAsDouble();
+    }
+
+    private static <T> boolean matchesRegistry(JsonElement condition, Identifier value, Registry<T> registry,
+                                                ResourceKey<? extends Registry<T>> registryKey) {
+        if (condition == null) {
+            return true;
+        }
+
+        if (condition.isJsonArray()) {
+            for (JsonElement entry : condition.getAsJsonArray()) {
+                if (matchesRegistry(entry, value, registry, registryKey)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        if (!isString(condition)) {
+            return false;
+        }
+
+        String expected = condition.getAsString();
+        if (!expected.startsWith("#")) {
+            Identifier expectedId = Identifier.tryParse(expected);
+            return expectedId != null && expectedId.equals(value);
+        }
+
+        Identifier tagId = Identifier.tryParse(expected.substring(1));
+        if (tagId == null) {
+            return false;
+        }
+
+        TagKey<T> tag = TagKey.create(registryKey, tagId);
+        return registry.get(value).map(holder -> holder.is(tag)).orElse(false);
+    }
+
+    private static boolean matchesText(JsonElement condition, String value) {
+        if (condition == null) {
+            return true;
+        }
+        if (condition.isJsonArray()) {
+            for (JsonElement entry : condition.getAsJsonArray()) {
+                if (matchesText(entry, value)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        if (!isString(condition)) {
+            return false;
+        }
+        return value.equals(condition.getAsString());
+    }
+
+    private static Identifier eventValue(JsonObject event) {
+        if (!isString(event.get("value"))) {
+            return null;
+        }
+        return Identifier.tryParse(event.get("value").getAsString());
+    }
+
+    private static boolean isString(JsonElement element) {
+        return element != null && element.isJsonPrimitive() && element.getAsJsonPrimitive().isString();
+    }
+
+    private static boolean isNumber(JsonElement element) {
+        return element != null && element.isJsonPrimitive() && element.getAsJsonPrimitive().isNumber();
+    }
+
+    private static boolean isBoolean(JsonElement element) {
+        return element != null && element.isJsonPrimitive() && element.getAsJsonPrimitive().isBoolean();
+    }
+
+    private static void tickMinecartDistance(Minecraft minecraft) {
+        if (minecraft.player == null || !(minecraft.player.getVehicle() instanceof AbstractMinecart minecart)) {
+            activeMinecart = null;
+            minecartStart = null;
+            return;
+        }
+
+        if (minecart != activeMinecart || minecartStart == null) {
+            activeMinecart = minecart;
+            minecartStart = minecart.position();
+            return;
+        }
+
+        Vec3 position = minecart.position();
+        double x = position.x() - minecartStart.x();
+        double z = position.z() - minecartStart.z();
+        JsonObject event = new JsonObject();
+        event.addProperty("distance", Math.sqrt(x * x + z * z));
+        trigger(MINECART_DISTANCE, event);
+        trigger(MINECART_RAIL, event);
+    }
+
+    private static void showToast(ClientAdvancement advancement) {
+        advancement.display().filter(display -> display.shouldShowToast()).ifPresent(display ->
+                Minecraft.getInstance().getToastManager().addToast(
+                        new AdvancementToast(ClientAdvancementView.createHolder(advancement, true))
+                )
+        );
+    }
+
+    @FunctionalInterface
+    public interface Evaluator {
+        boolean matches(JsonObject conditions, JsonObject event);
+    }
 }

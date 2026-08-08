@@ -11,5 +11,13 @@
     "title": {
       "translate": "advancements.story.enchant_item.title"
     }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "globaladvancements:minecraft_advancement",
+      "conditions": {
+        "advancement": "minecraft:story/enchant_item"
+      }
+    }
   }
 }

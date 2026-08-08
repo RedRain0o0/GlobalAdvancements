@@ -29,7 +29,6 @@ import java.util.Optional;
 import java.util.Set;
 
 public class ClientAdvancementView extends ClientAdvancements {
-    private static final String COMPLETE_CRITERION = "complete";
     private static final DateTimeFormatter UNLOCK_TIME_FORMAT = DateTimeFormatter
             .ofLocalizedDateTime(FormatStyle.MEDIUM)
             .withLocale(Locale.getDefault())
@@ -46,23 +45,13 @@ public class ClientAdvancementView extends ClientAdvancements {
 
         for (ClientAdvancement advancement : ClientAdvancementManager.all()) {
             boolean unlocked = ClientProgressManager.isComplete(advancement);
-            AdvancementRequirements requirements = advancement.requirements().isEmpty()
-                    ? AdvancementRequirements.EMPTY
-                    : new AdvancementRequirements(List.of(List.of(COMPLETE_CRITERION)));
-            Advancement value = new Advancement(
-                    advancement.parent(),
-                    getDisplay(advancement, unlocked),
-                    AdvancementRewards.EMPTY,
-                    Map.of(),
-                    requirements,
-                    false
-            );
-            holders.add(new AdvancementHolder(advancement.id(), value));
+            AdvancementRequirements requirements = getRequirements(advancement);
+            holders.add(createHolder(advancement, unlocked));
 
             AdvancementProgress advancementProgress = new AdvancementProgress();
             advancementProgress.update(requirements);
-            if (unlocked) {
-                advancementProgress.grantProgress(COMPLETE_CRITERION);
+            for (String criterion : ClientProgressManager.completedCriteria(advancement.id())) {
+                advancementProgress.grantProgress(criterion);
             }
             progress.put(advancement.id(), advancementProgress);
         }
@@ -72,6 +61,24 @@ public class ClientAdvancementView extends ClientAdvancements {
             TreeNodePosition.run(root);
         }
         return view;
+    }
+
+    public static AdvancementHolder createHolder(ClientAdvancement advancement, boolean unlocked) {
+        Advancement value = new Advancement(
+                advancement.parent(),
+                getDisplay(advancement, unlocked),
+                AdvancementRewards.EMPTY,
+                Map.of(),
+                getRequirements(advancement),
+                false
+        );
+        return new AdvancementHolder(advancement.id(), value);
+    }
+
+    private static AdvancementRequirements getRequirements(ClientAdvancement advancement) {
+        return advancement.requirements().isEmpty()
+                ? AdvancementRequirements.EMPTY
+                : new AdvancementRequirements(advancement.requirements());
     }
 
     private static Optional<DisplayInfo> getDisplay(ClientAdvancement advancement, boolean unlocked) {

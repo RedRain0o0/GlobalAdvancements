@@ -11,5 +11,13 @@
     "title": {
       "translate": "advancements.husbandry.safely_harvest_honey.title"
     }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "globaladvancements:minecraft_advancement",
+      "conditions": {
+        "advancement": "minecraft:husbandry/safely_harvest_honey"
+      }
+    }
   }
 }

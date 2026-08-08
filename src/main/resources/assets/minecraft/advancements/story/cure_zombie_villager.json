@@ -12,5 +12,13 @@
     "title": {
       "translate": "advancements.story.cure_zombie_villager.title"
     }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "globaladvancements:minecraft_advancement",
+      "conditions": {
+        "advancement": "minecraft:story/cure_zombie_villager"
+      }
+    }
   }
 }

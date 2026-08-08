@@ -9,11 +9,11 @@
   "mixins": [
     "FurnaceResultSlotMixin",
     "ItemEntityMixin",
-    "PlayerAdvancementsMixin",
     "ResultSlotMixin"
   ],
   "client": [
     "client.AdvancementsScreenMixin",
+    "client.ClientPacketListenerMixin",
     "client.TitleScreenMixin"
   ],
   "injectors": {

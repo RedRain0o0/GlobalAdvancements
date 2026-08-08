@@ -12,5 +12,13 @@
     "title": {
       "translate": "advancements.nether.fast_travel.title"
     }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "globaladvancements:minecraft_advancement",
+      "conditions": {
+        "advancement": "minecraft:nether/fast_travel"
+      }
+    }
   }
 }

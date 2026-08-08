@@ -11,5 +11,13 @@
     "title": {
       "translate": "advancements.story.follow_ender_eye.title"
     }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "globaladvancements:minecraft_advancement",
+      "conditions": {
+        "advancement": "minecraft:story/follow_ender_eye"
+      }
+    }
   }
 }

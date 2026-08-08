@@ -11,5 +11,13 @@
     "title": {
       "translate": "advancements.story.form_obsidian.title"
     }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "globaladvancements:minecraft_advancement",
+      "conditions": {
+        "advancement": "minecraft:story/form_obsidian"
+      }
+    }
   }
 }

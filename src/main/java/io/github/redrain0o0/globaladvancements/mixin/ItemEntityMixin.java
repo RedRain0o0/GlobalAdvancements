@@ -1,6 +1,8 @@
 package io.github.redrain0o0.globaladvancements.mixin;
 
-import io.github.redrain0o0.globaladvancements.criterion.GACriteriaTriggers;
+import io.github.redrain0o0.globaladvancements.Globaladvancements;
+import io.github.redrain0o0.globaladvancements.criterion.CriterionEventTypes;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
@@ -28,7 +30,7 @@ public abstract class ItemEntityMixin {
     @Inject(method = "playerTouch", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/player/Player;take(Lnet/minecraft/world/entity/Entity;I)V"))
     private void gadva$pickedUpItem(Player player, CallbackInfo ci) {
         if (player instanceof ServerPlayer serverPlayer && !this.gadva$pickupStack.isEmpty()) {
-            GACriteriaTriggers.PICKUP_ITEM.trigger(serverPlayer, this.gadva$pickupStack);
+            Globaladvancements.sendCriterionEvent(serverPlayer, CriterionEventTypes.PICKUP_ITEM, BuiltInRegistries.ITEM.getKey(this.gadva$pickupStack.getItem()));
         }
     }
 }

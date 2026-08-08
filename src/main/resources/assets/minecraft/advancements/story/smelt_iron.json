@@ -11,5 +11,13 @@
     "title": {
       "translate": "advancements.story.smelt_iron.title"
     }
+  },
+  "criteria": {
+    "complete": {
+      "trigger": "globaladvancements:minecraft_advancement",
+      "conditions": {
+        "advancement": "minecraft:story/smelt_iron"
+      }
+    }
   }
 }
