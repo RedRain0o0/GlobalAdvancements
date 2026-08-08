@@ -9,7 +9,8 @@
   "mixins": [
     "FurnaceResultSlotMixin",
     "ItemEntityMixin",
-    "ResultSlotMixin"
+    "ResultSlotMixin",
+    "LivingEntityMixin"
   ],
   "client": [
     "client.AdvancementsScreenMixin",

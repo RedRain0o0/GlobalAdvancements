@@ -56,6 +56,7 @@ public final class ClientCriterionManager {
                 matchesItem(conditions, "item", eventValue(event)));
         register(CriterionEventTypes.MINE_BLOCK, ClientCriterionManager::matchesBlock);
         register(CriterionEventTypes.KILL_ENTITY, ClientCriterionManager::matchesEntity);
+        register(CriterionEventTypes.FALL_FROM_VEHICLE, ClientCriterionManager::matchesEntity);
         register(MINECRAFT_ADVANCEMENT, ClientCriterionManager::matchesMinecraftAdvancement);
         register(MINECART_DISTANCE, ClientCriterionManager::matchesMinecartDistance);
         register(MINECART_RAIL, ClientCriterionManager::matchesMinecartDistance);
