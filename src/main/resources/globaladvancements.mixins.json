@@ -11,7 +11,8 @@
     "ItemEntityMixin",
     "ResultSlotMixin",
     "LivingEntityMixin",
-    "TamableAnimalMixin"
+    "TamableAnimalMixin",
+    "PortalLightingItemMixin"
   ],
   "client": [
     "client.AdvancementsScreenMixin",

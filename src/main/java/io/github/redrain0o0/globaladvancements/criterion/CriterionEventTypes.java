@@ -11,6 +11,7 @@ public final class CriterionEventTypes {
     public static final Identifier KILL_ENTITY = Globaladvancements.createId("kill_entity");
     public static final Identifier FALL_FROM_VEHICLE = Globaladvancements.createId("fall_from_vehicle");
     public static final Identifier TAME_WOLF = Globaladvancements.createId("tame_wolf");
+    public static final Identifier LIGHT_NETHER_PORTAL = Globaladvancements.createId("light_nether_portal");
 
     private CriterionEventTypes() {
     }
