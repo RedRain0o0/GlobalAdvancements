@@ -10,7 +10,8 @@
     "FurnaceResultSlotMixin",
     "ItemEntityMixin",
     "ResultSlotMixin",
-    "LivingEntityMixin"
+    "LivingEntityMixin",
+    "TamableAnimalMixin"
   ],
   "client": [
     "client.AdvancementsScreenMixin",

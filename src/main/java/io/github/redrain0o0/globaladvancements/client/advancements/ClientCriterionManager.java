@@ -57,6 +57,7 @@ public final class ClientCriterionManager {
         register(CriterionEventTypes.MINE_BLOCK, ClientCriterionManager::matchesBlock);
         register(CriterionEventTypes.KILL_ENTITY, ClientCriterionManager::matchesEntity);
         register(CriterionEventTypes.FALL_FROM_VEHICLE, ClientCriterionManager::matchesEntity);
+        register(CriterionEventTypes.TAME_WOLF, ClientCriterionManager::matchesTamedWolves);
         register(MINECRAFT_ADVANCEMENT, ClientCriterionManager::matchesMinecraftAdvancement);
         register(MINECART_DISTANCE, ClientCriterionManager::matchesMinecartDistance);
         register(MINECART_RAIL, ClientCriterionManager::matchesMinecartDistance);
@@ -80,6 +81,9 @@ public final class ClientCriterionManager {
     }
 
     public static void trigger(Identifier trigger, JsonObject event) {
+        if (CriterionEventTypes.TAME_WOLF.equals(trigger)) {
+            event.addProperty("count", ClientProgressManager.recordTamedWolf());
+        }
         trigger(trigger, event, true, true, true);
     }
 
@@ -228,6 +232,15 @@ public final class ClientCriterionManager {
         return BuiltInRegistries.ENTITY_TYPE.getOptional(value)
                 .map(type -> matchesText(conditions.get("category"), type.getCategory().getSerializedName()))
                 .orElse(false);
+    }
+
+    private static boolean matchesTamedWolves(JsonObject conditions, JsonObject event) {
+        if (!matchesEntity(conditions, event) || !isNumber(event.get("count"))) {
+            return false;
+        }
+
+        int required = isNumber(conditions.get("count")) ? conditions.get("count").getAsInt() : 5;
+        return event.get("count").getAsInt() >= required;
     }
 
     private static boolean matchesMinecraftAdvancement(JsonObject conditions, JsonObject event) {

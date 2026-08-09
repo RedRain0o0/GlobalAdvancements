@@ -31,11 +31,13 @@ public class ClientProgressManager {
     private static final Map<Identifier, Set<String>> completedCriteria = new LinkedHashMap<>();
     private static final Map<Identifier, Instant> unlockTimes = new LinkedHashMap<>();
     private static boolean ignoreExistingVanillaProgress;
+    private static int tamedWolves;
 
     public static void load() {
         completedCriteria.clear();
         unlockTimes.clear();
         ignoreExistingVanillaProgress = false;
+        tamedWolves = 0;
 
         JsonObject file = readFile(getFile());
         JsonObject advancements = getObject(file, "completed_criteria");
@@ -80,6 +82,12 @@ public class ClientProgressManager {
             ignoreExistingVanillaProgress = ignoreExisting.getAsBoolean();
         }
 
+        JsonElement tamedWolvesElement = file.get("tamed_wolves");
+        if (tamedWolvesElement != null && tamedWolvesElement.isJsonPrimitive()
+                && tamedWolvesElement.getAsJsonPrimitive().isNumber()) {
+            tamedWolves = Math.max(0, tamedWolvesElement.getAsInt());
+        }
+
         Globaladvancements.LOGGER.info("Loaded {} completed client criteria and {} unlock times", criteriaCount, unlockTimes.size());
     }
 
@@ -103,6 +111,12 @@ public class ClientProgressManager {
             save();
         }
         return completed;
+    }
+
+    static int recordTamedWolf() {
+        tamedWolves++;
+        save();
+        return tamedWolves;
     }
 
     public static Optional<Instant> unlockedAt(Identifier advancementId) {
@@ -155,19 +169,20 @@ public class ClientProgressManager {
     }
 
     public static void save() {
-        writeFile(createProgressFile(completedCriteria, unlockTimes, ignoreExistingVanillaProgress), getFile());
+        writeFile(createProgressFile(completedCriteria, unlockTimes, tamedWolves, ignoreExistingVanillaProgress), getFile());
     }
 
     public static boolean resetWithBackup() {
-        if (!writeFile(createProgressFile(completedCriteria, unlockTimes, ignoreExistingVanillaProgress), getBackupFile())) {
+        if (!writeFile(createProgressFile(completedCriteria, unlockTimes, tamedWolves, ignoreExistingVanillaProgress), getBackupFile())) {
             return false;
         }
-        if (!writeFile(createProgressFile(Map.of(), Map.of(), true), getFile())) {
+        if (!writeFile(createProgressFile(Map.of(), Map.of(), 0, true), getFile())) {
             return false;
         }
 
         completedCriteria.clear();
         unlockTimes.clear();
+        tamedWolves = 0;
         ignoreExistingVanillaProgress = true;
         return true;
     }
@@ -195,6 +210,7 @@ public class ClientProgressManager {
 
     private static JsonObject createProgressFile(Map<Identifier, ? extends Set<String>> criteriaByAdvancement,
                                                  Map<Identifier, Instant> timesByAdvancement,
+                                                 int tamedWolves,
                                                  boolean ignoreExistingProgress) {
         JsonObject advancementsFile = new JsonObject();
         JsonObject advancements = new JsonObject();
@@ -216,6 +232,7 @@ public class ClientProgressManager {
         advancementsFile.add("completed_criteria", advancements);
         advancementsFile.add("unlocked_at", unlockedAt);
         advancementsFile.addProperty("ignore_existing_vanilla_progress", ignoreExistingProgress);
+        advancementsFile.addProperty("tamed_wolves", tamedWolves);
         advancementsFile.addProperty("dataVersion", 4790);
         return advancementsFile;
     }
@@ -280,6 +297,13 @@ public class ClientProgressManager {
 
         JsonElement ignoreExisting = file.get("ignore_existing_vanilla_progress");
         if (ignoreExisting != null && (!ignoreExisting.isJsonPrimitive() || !ignoreExisting.getAsJsonPrimitive().isBoolean())) {
+            return false;
+        }
+
+        JsonElement tamedWolves = file.get("tamed_wolves");
+        if (tamedWolves != null && (!tamedWolves.isJsonPrimitive()
+                || !tamedWolves.getAsJsonPrimitive().isNumber()
+                || tamedWolves.getAsInt() < 0)) {
             return false;
         }
 

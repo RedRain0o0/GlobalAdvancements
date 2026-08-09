@@ -10,6 +10,7 @@ public final class CriterionEventTypes {
     public static final Identifier MINE_BLOCK = Globaladvancements.createId("mine_block");
     public static final Identifier KILL_ENTITY = Globaladvancements.createId("kill_entity");
     public static final Identifier FALL_FROM_VEHICLE = Globaladvancements.createId("fall_from_vehicle");
+    public static final Identifier TAME_WOLF = Globaladvancements.createId("tame_wolf");
 
     private CriterionEventTypes() {
     }
