@@ -7,6 +7,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -31,6 +32,10 @@ public abstract class ItemEntityMixin {
     private void gadva$pickedUpItem(Player player, CallbackInfo ci) {
         if (player instanceof ServerPlayer serverPlayer && !this.gadva$pickupStack.isEmpty()) {
             Globaladvancements.sendCriterionEvent(serverPlayer, CriterionEventTypes.PICKUP_ITEM, BuiltInRegistries.ITEM.getKey(this.gadva$pickupStack.getItem()));
+            ItemEntity itemEntity = (ItemEntity) (Object) this;
+            if (this.gadva$pickupStack.is(Items.DIAMOND) && itemEntity.getOwner() instanceof ServerPlayer thrower && thrower != serverPlayer) {
+                Globaladvancements.sendCriterionEvent(thrower, CriterionEventTypes.DIAMONDS_TO_YOU, BuiltInRegistries.ITEM.getKey(this.gadva$pickupStack.getItem()));
+            }
         }
     }
 }

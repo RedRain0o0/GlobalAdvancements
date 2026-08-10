@@ -60,6 +60,8 @@ public final class ClientCriterionManager {
         register(CriterionEventTypes.TAME_WOLF, ClientCriterionManager::matchesTamedWolves);
         register(CriterionEventTypes.LIGHT_NETHER_PORTAL, ClientCriterionManager::matchesBlock);
         register(CriterionEventTypes.SNIPER_DUEL, ClientCriterionManager::matchesEntity);
+        register(CriterionEventTypes.DIAMONDS_TO_YOU, (conditions, event) ->
+                matchesItem(conditions, "item", eventValue(event)));
         register(MINECRAFT_ADVANCEMENT, ClientCriterionManager::matchesMinecraftAdvancement);
         register(MINECART_DISTANCE, ClientCriterionManager::matchesMinecartDistance);
         register(MINECART_RAIL, ClientCriterionManager::matchesMinecartDistance);
