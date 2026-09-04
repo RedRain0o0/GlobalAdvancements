@@ -21,6 +21,7 @@ public class Globaladvancements implements ModInitializer {
     public static final String MOD_ID = "globaladvancements";
     public static final String MOD_NAME = "Global Advancements";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_NAME);
+    public static boolean confirmThatIWantToCreateTheWorldEvenThoughIHaveCheatsEnabled = false; // i like doing stupidly long variable names for no reason :3c
 
     @Override
     public void onInitialize() {

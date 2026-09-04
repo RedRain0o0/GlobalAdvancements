@@ -1,5 +1,4 @@
 {
-  "gui.globaladvancements.startGame": "Start Game",
   "gui.globaladvancements.unlockedAt": "Unlocked: %s",
   "gui.globaladvancements.progress": "%s / %s · %s%%",
   "gui.globaladvancements.reset": "Reset",
@@ -12,6 +11,9 @@
   "gui.globaladvancements.restore.missing.message": "Reset your progress once before trying to restore it.",
   "gui.globaladvancements.restore.failed.title": "Restore Failed",
   "gui.globaladvancements.restore.failed.message": "Your progress was not changed because the backup could not be restored.",
-  "gui.globaladvancements.hostPrivileges": "If you create, load or save a world with Cheats enabled, that world will have advancements disabled, even if it is then loaded with Cheats disabled. Are you sure you want to continue?",
+  "gui.globaladvancements.createWorld": "Create World",
+  "gui.globaladvancements.startGame": "Start Game",
+  "gui.globaladvancements.cheats": "If you create, load or save a world with Cheats enabled, that world will have advancements disabled, even if it is then loaded with Cheats disabled. Are you sure you want to continue?",
+  "gui.globaladvancements.hostPrivileges": "If you create, load or save a world with Host Privileges enabled, that world will have advancements disabled, even if it is then loaded with those options off. Are you sure you want to continue?",
   "gui.globaladvancements.creativeMode": "If you create, load or save a world in Creative Mode, that world will have advancements disabled, even if it is then loaded in Survival Mode. Are you sure you want to continue?"
 }

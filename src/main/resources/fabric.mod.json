@@ -17,6 +17,7 @@
       "io.github.redrain0o0.globaladvancements.Globaladvancements"
     ]
   },
+  "accessWidener": "globaladvancements.accesswidener",
   "mixins": [
     "globaladvancements.mixins.json"
   ],

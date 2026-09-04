@@ -18,6 +18,7 @@
     "client.AdvancementsScreenMixin",
     "client.ClientAdvancementsMixin",
     "client.ClientPacketListenerMixin",
+    "client.CreateWorldScreenMixin",
     "client.TitleScreenMixin"
   ],
   "injectors": {
