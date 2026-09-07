@@ -7,6 +7,7 @@ import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
@@ -21,7 +22,8 @@ public class Globaladvancements implements ModInitializer {
     public static final String MOD_ID = "globaladvancements";
     public static final String MOD_NAME = "Global Advancements";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_NAME);
-    public static boolean confirmThatIWantToCreateTheWorldEvenThoughIHaveCheatsEnabled = false; // i like doing stupidly long variable names for no reason :3c
+    public static boolean confirmThatIWantToCreateOrJoinTheWorldEvenThoughIHaveCheatsEnabled = false; // i like doing stupidly long variable names for no reason :3c
+    public static SelectWorldScreen selectWorldScreen; // i need the screen instance in a static method
 
     @Override
     public void onInitialize() {
@@ -49,12 +51,8 @@ public class Globaladvancements implements ModInitializer {
     }
 
     private static ServerPlayer findPlayer(Entity entity, DamageSource damageSource) {
-        if (damageSource.getEntity() instanceof ServerPlayer player) {
-            return player;
-        }
-        if (entity instanceof ServerPlayer player) {
-            return player;
-        }
+        if (damageSource.getEntity() instanceof ServerPlayer player) return player;
+        if (entity instanceof ServerPlayer player) return player;
         return null;
     }
 

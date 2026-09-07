@@ -19,7 +19,9 @@
     "client.ClientAdvancementsMixin",
     "client.ClientPacketListenerMixin",
     "client.CreateWorldScreenMixin",
-    "client.TitleScreenMixin"
+    "client.SelectWorldScreenMixin",
+    "client.TitleScreenMixin",
+    "client.WorldListEntryMixin"
   ],
   "injectors": {
     "defaultRequire": 1
