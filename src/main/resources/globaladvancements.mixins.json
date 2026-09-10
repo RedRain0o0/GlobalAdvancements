@@ -4,21 +4,23 @@
   "mixinextras": {
     "minVersion": "0.5.0"
   },
+  "plugin": "io.github.redrain0o0.globaladvancements.GlobaladvancementsMixinPlugin",
   "package": "io.github.redrain0o0.globaladvancements.mixin",
   "compatibilityLevel": "JAVA_25",
   "mixins": [
     "FurnaceResultSlotMixin",
     "ItemEntityMixin",
-    "ResultSlotMixin",
     "LivingEntityMixin",
-    "TamableAnimalMixin",
-    "PortalLightingItemMixin"
+    "PortalLightingItemMixin",
+    "ResultSlotMixin",
+    "TamableAnimalMixin"
   ],
   "client": [
     "client.AdvancementsScreenMixin",
     "client.ClientAdvancementsMixin",
     "client.ClientPacketListenerMixin",
     "client.CreateWorldScreenMixin",
+    "client.LegacyTitleScreenMixin",
     "client.SelectWorldScreenMixin",
     "client.TitleScreenMixin",
     "client.WorldListEntryMixin"
