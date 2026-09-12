@@ -11,6 +11,7 @@
     "FurnaceResultSlotMixin",
     "ItemEntityMixin",
     "LivingEntityMixin",
+    "PlayerAdvancementsMixin",
     "PortalLightingItemMixin",
     "ResultSlotMixin",
     "TamableAnimalMixin"
