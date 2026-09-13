@@ -25,6 +25,7 @@
     "client.CreateWorldScreenMixin",
     "client.LegacyAdvancementsScreenMixin",
     "client.LegacyTitleScreenMixin",
+    "client.ShareToLanScreenMixin",
     "client.TitleScreenMixin",
     "client.WorldListEntryMixin"
   ],
