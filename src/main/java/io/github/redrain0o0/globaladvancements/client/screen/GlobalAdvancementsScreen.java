@@ -7,6 +7,7 @@ import io.github.redrain0o0.globaladvancements.client.advancements.ClientAdvance
 import io.github.redrain0o0.globaladvancements.client.advancements.ClientProgressManager;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
@@ -41,6 +42,9 @@ public class GlobalAdvancementsScreen extends AdvancementsScreen {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.screen instanceof GlobalAdvancementsScreen screen) {
             minecraft.setScreen(new GlobalAdvancementsScreen(screen.lastScreen));
+        } else if (FabricLoader.getInstance().isModLoaded("legacy")
+                && minecraft.screen instanceof LegacyGlobalAdvancementsScreen screen) {
+            minecraft.setScreen(new LegacyGlobalAdvancementsScreen(screen.parent));
         }
     }
 

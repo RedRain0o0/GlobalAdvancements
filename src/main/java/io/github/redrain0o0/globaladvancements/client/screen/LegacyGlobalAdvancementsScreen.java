@@ -1,14 +1,13 @@
 package io.github.redrain0o0.globaladvancements.client.screen;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import io.github.redrain0o0.globaladvancements.client.advancements.ClientAdvancementView;
 import net.minecraft.advancements.*;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.advancements.AdvancementsScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.multiplayer.ClientAdvancements;
 import net.minecraft.network.chat.Component;
@@ -19,13 +18,12 @@ import wily.factoryapi.base.Stocker;
 import wily.factoryapi.base.client.FactoryGuiGraphics;
 import wily.factoryapi.util.FactoryScreenUtil;
 import wily.factoryapi.util.PagedList;
-import wily.legacy.Legacy4JClient;
 import wily.legacy.client.CommonColor;
 import wily.legacy.client.LegacyOptions;
 import wily.legacy.client.controller.BindingState;
+import wily.legacy.client.controller.ControllerBinding;
 import wily.legacy.client.screen.*;
 import wily.legacy.mixin.base.client.AbstractWidgetAccessor;
-import wily.legacy.network.ClientAdvancementsPayload;
 import wily.legacy.util.LegacyComponents;
 import wily.legacy.util.LegacySprites;
 import wily.legacy.util.client.LegacyFontUtil;
@@ -42,6 +40,7 @@ import static wily.legacy.client.screen.ControlTooltip.EXTRA;
 public class LegacyGlobalAdvancementsScreen extends PanelVListScreen implements TabList.Access {
     public static final Component TITLE = Component.translatable("gui.advancements");
     public static final List<Identifier> vanillaOrder = List.of(FactoryAPI.createVanillaLocation("story/root"), FactoryAPI.createVanillaLocation("adventure/root"), FactoryAPI.createVanillaLocation("husbandry/root"), FactoryAPI.createVanillaLocation("nether/root"), FactoryAPI.createVanillaLocation("end/root"));
+    private final ClientAdvancementView advancements = ClientAdvancementView.create();
     protected final Stocker.Sizeable page = new Stocker.Sizeable(0);
     protected final TabList tabList = new TabList(accessor, new PagedList<>(page, this::getMaxTabCount));
     protected final List<DisplayInfo> displayInfos = new ArrayList<>();
@@ -52,16 +51,16 @@ public class LegacyGlobalAdvancementsScreen extends PanelVListScreen implements 
     public LegacyGlobalAdvancementsScreen(Screen parent) {
         super(parent, s -> Panel.createPanel(s, p -> p.centeredLeftPos(s), p -> p.centeredTopPos(s) + (0), 450, 252), TITLE);
         renderableVLists.clear();
-        //StreamSupport.stream(getActualAdvancements().roots().spliterator(), false).sorted(Comparator.comparingInt(n -> vanillaOrder.contains(n.holder().id()) ? vanillaOrder.indexOf(n.holder().id()) : Integer.MAX_VALUE)).forEach(a -> {
-        //    DisplayInfo displayInfo = a.advancement().display().orElse(null);
-        //    if (displayInfo == null) return;
+        StreamSupport.stream(getActualAdvancements().roots().spliterator(), false).sorted(Comparator.comparingInt(n -> vanillaOrder.contains(n.holder().id()) ? vanillaOrder.indexOf(n.holder().id()) : Integer.MAX_VALUE)).forEach(a -> {
+            DisplayInfo displayInfo = a.advancement().display().orElse(null);
+            if (displayInfo == null) return;
 
-        //    tabList.add(LegacyTabButton.Type.MIDDLE, LegacyTabButton.iconOf(displayInfo.getIcon().create()), displayInfo.getTitle(), b -> repositionElements());
-        //    RenderableVList renderableVList = new RenderableVList(this).layoutSpacing(l -> 4).forceWidth(false).cyclic(false);
-        //    renderableVLists.add(renderableVList);
-        //    displayInfos.add(displayInfo);
-        //    getActualAdvancements().nodes().stream().filter(n1 -> !n1.equals(a) && n1.root().equals(a)).sorted(Comparator.comparingInt(LegacyAdvancementsScreen::getRootDistance)).forEach(node -> addAdvancementButton(renderableVList, node));
-        //});
+            tabList.add(LegacyTabButton.Type.MIDDLE, LegacyTabButton.iconOf(displayInfo.getIcon().create()), displayInfo.getTitle(), b -> repositionElements());
+            RenderableVList renderableVList = new RenderableVList(this).layoutSpacing(l -> 4).forceWidth(false).cyclic(false);
+            renderableVLists.add(renderableVList);
+            displayInfos.add(displayInfo);
+            getActualAdvancements().nodes().stream().filter(n1 -> !n1.equals(a) && n1.root().equals(a)).sorted(Comparator.comparingInt(LegacyGlobalAdvancementsScreen::getRootDistance)).forEach(node -> addAdvancementButton(renderableVList, node));
+        });
         panelRecess = Panel.createPanel(this, p -> p.appearance(LegacySprites.PANEL_RECESS, panel.getWidth() - 24, panel.getHeight() - 66), p -> p.pos(panel.getX() + 12, panel.getY() + 50));
     }
 
@@ -77,15 +76,15 @@ public class LegacyGlobalAdvancementsScreen extends PanelVListScreen implements 
     }
 
     public static Screen getActualAdvancementsScreenInstance(Screen parent) {
-        return LegacyOptions.legacyAdvancements.get() ? new LegacyAdvancementsScreen(parent) : new AdvancementsScreen(getAdvancements(), parent);
+        return LegacyOptions.legacyAdvancements.get() ? new LegacyGlobalAdvancementsScreen(parent) : new GlobalAdvancementsScreen(parent);
     }
 
-    public static AdvancementTree getActualAdvancements() {
-        return Legacy4JClient.hasModOnServer() ? ClientAdvancementsPayload.advancements : getAdvancements().getTree();
+    public AdvancementTree getActualAdvancements() {
+        return advancements.getTree();
     }
 
-    public static ClientAdvancements getAdvancements() {
-        return Minecraft.getInstance().getConnection().getAdvancements();
+    public ClientAdvancements getAdvancements() {
+        return advancements;
     }
 
     protected void addAdvancementButton(RenderableVList renderableVList, AdvancementNode advancementNode) {
@@ -104,7 +103,8 @@ public class LegacyGlobalAdvancementsScreen extends PanelVListScreen implements 
 
     @Override
     public RenderableVList getRenderableVList() {
-        return getRenderableVLists().get(page.get() * getMaxTabCount() + tabList.getIndex());
+        return getRenderableVLists().isEmpty() ? renderableVList
+                : getRenderableVLists().get(page.get() * getMaxTabCount() + tabList.getIndex());
     }
 
     protected int getMaxTabCount() {
@@ -113,21 +113,31 @@ public class LegacyGlobalAdvancementsScreen extends PanelVListScreen implements 
 
     @Override
     public void bindingStateTick(BindingState state) {
-        //if (state.is(ControllerBinding.RIGHT_STICK) && state instanceof BindingState.Axis s && s.pressed && s.canClick()) {
-        //    tabList.controlPage(page, s.x < 0 && -s.x > Math.abs(s.y), s.x > 0 && s.x > Math.abs(s.y));
-        //}
+        if (state.is(ControllerBinding.RIGHT_STICK) && state instanceof BindingState.Axis s && s.pressed && s.canClick()) {
+            controlPage(s.x < 0 && -s.x > Math.abs(s.y), s.x > 0 && s.x > Math.abs(s.y));
+        }
+    }
+
+    private boolean controlPage(boolean left, boolean right) {
+        if ((!left && !right) || page.max == 0) return false;
+        int previous = page.get();
+        page.add(left ? -1 : 1);
+        if (previous == page.get()) return false;
+        tabList.resetSelectedTab();
+        return true;
     }
 
     @Override
     protected void panelInit() {
-        addRenderableWidget(tabList);
+        if (!tabList.tabButtons.isEmpty()) addRenderableWidget(tabList);
         super.panelInit();
         panelRecess.init("panelRecess");
         addRenderableOnly(tabList::renderSelected);
         addRenderableOnly(((GuiGraphicsExtractor, i, j, f) -> {
             LegacyFontUtil.applySDFont(b -> GuiGraphicsExtractor.text(font, showDescription && !tabList.tabButtons.isEmpty() ? tabList.tabButtons.get(tabList.getIndex()).getMessage() : getTitle(), panel.x + (panel.width - font.width(showDescription && !tabList.tabButtons.isEmpty() ? tabList.tabButtons.get(tabList.getIndex()).getMessage() : getTitle())) / 2, panel.y + 10, CommonColor.GRAY_TEXT.get(), false));
             if (!displayInfos.isEmpty()) {
-                Identifier background = displayInfos.get(tabList.getIndex()).getBackground().orElse(null).texturePath();
+                Identifier background = displayInfos.get(page.get() * getMaxTabCount() + tabList.getIndex())
+                        .getBackground().map(texture -> texture.texturePath()).orElse(null);
                 if (background != null)
                     FactoryGuiGraphics.of(GuiGraphicsExtractor).blit(background, panel.x + 14, panel.y + 24, 0, 0, panelRecess.width - 4, 23, 16, 16);
             }
@@ -156,7 +166,7 @@ public class LegacyGlobalAdvancementsScreen extends PanelVListScreen implements 
             return true;
         }
         if (tabList.controlTab(keyEvent.key())) return true;
-        //if (keyEvent.hasShiftDown()) tabList.controlPage(page, keyEvent.isLeft(), keyEvent.isRight());
+        if (keyEvent.hasShiftDown() && controlPage(keyEvent.isLeft(), keyEvent.isRight())) return true;
         return super.keyPressed(keyEvent);
     }
 
@@ -181,7 +191,7 @@ public class LegacyGlobalAdvancementsScreen extends PanelVListScreen implements 
     @Override
     public void added() {
         super.added();
-        oldLegacyTooltipsValue = LegacyOptions.legacyItemTooltips.get();
+        oldLegacyTooltipsValue = LegacyOptions.legacyItemTooltipScaling.get();
         LegacyOptions.legacyItemTooltipScaling.set(false);
     }
 
@@ -202,7 +212,7 @@ public class LegacyGlobalAdvancementsScreen extends PanelVListScreen implements 
         if (!showDescription) GuiGraphicsExtractor.deferredTooltip = null;
     }
 
-    public static class AdvancementButton extends AbstractWidget {
+    public class AdvancementButton extends AbstractWidget {
         public final Identifier id;
         public final Advancement advancement;
         public final DisplayInfo info;

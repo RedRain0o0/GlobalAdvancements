@@ -11,7 +11,7 @@ import java.util.Set;
 public class GlobaladvancementsMixinPlugin implements IMixinConfigPlugin {
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
-        return !mixinClassName.equals("io.github.redrain0o0.globaladvancements.mixin.client.LegacyTitleScreenMixin") || FabricLoader.getInstance().isModLoaded("legacy");
+        return !mixinClassName.startsWith("io.github.redrain0o0.globaladvancements.mixin.client.Legacy") || FabricLoader.getInstance().isModLoaded("legacy");
     }
 
     @Override

@@ -23,6 +23,7 @@
     "client.ClientAdvancementsMixin",
     "client.ClientPacketListenerMixin",
     "client.CreateWorldScreenMixin",
+    "client.LegacyAdvancementsScreenMixin",
     "client.LegacyTitleScreenMixin",
     "client.TitleScreenMixin",
     "client.WorldListEntryMixin"
