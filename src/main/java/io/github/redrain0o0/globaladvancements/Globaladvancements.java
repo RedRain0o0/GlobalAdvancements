@@ -2,10 +2,13 @@ package io.github.redrain0o0.globaladvancements;
 
 import com.mojang.datafixers.util.Pair;
 import io.github.redrain0o0.globaladvancements.criterion.CriterionEventTypes;
+import io.github.redrain0o0.globaladvancements.mixin.SelectWorldScreenAccessor;
+import io.github.redrain0o0.globaladvancements.mixin.WorldListEntryAccessor;
 import io.github.redrain0o0.globaladvancements.network.*;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentRegistry;
 import net.fabricmc.fabric.api.attachment.v1.AttachmentType;
+import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerEntityCombatEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
@@ -13,6 +16,9 @@ import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.advancements.AdvancementHolder;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.FaviconTexture;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.worldselection.SelectWorldScreen;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -101,6 +107,19 @@ public class Globaladvancements implements ModInitializer {
                 }
             }
         });
+
+        ScreenEvents.AFTER_INIT.register((client, screen, scaledWidth, scaledHeight) -> {
+			if (screen instanceof SelectWorldScreenAccessor selectWorldScreen) {
+                selectWorldScreen.gadva$getList().children().forEach(a -> {
+                    if (a instanceof WorldListEntryAccessor accessor) {
+                        if (!(accessor.gadva$getIcon() instanceof FaviconTexture texture) || texture.isClosed()) {
+                            accessor.gadva$setIcon(FaviconTexture.forWorld(client.getTextureManager(), accessor.gadva$getSummary().getLevelId()));
+                            accessor.gadva$callLoadIcon();
+                        }
+                    }
+                });
+            }
+		});
     }
 
     public static void sendCriterionEvent(ServerPlayer player, Identifier trigger, Identifier value) {

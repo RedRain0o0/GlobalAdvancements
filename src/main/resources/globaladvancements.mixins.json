@@ -17,6 +17,8 @@
     "TamableAnimalMixin"
   ],
   "client": [
+    "SelectWorldScreenAccessor",
+    "WorldListEntryAccessor",
     "client.AdvancementsScreenMixin",
     "client.ClientAdvancementsMixin",
     "client.ClientPacketListenerMixin",
