@@ -63,7 +63,9 @@ public class ClientAdvancementView extends ClientAdvancements {
 
         view.update(new ClientboundUpdateAdvancementsPacket(true, holders, Set.of(), progress, false));
         for (AdvancementNode root : view.getTree().roots()) {
-            TreeNodePosition.run(root);
+            if (root.advancement().display().isPresent()) {
+                TreeNodePosition.run(root);
+            }
         }
         return view;
     }
@@ -88,7 +90,7 @@ public class ClientAdvancementView extends ClientAdvancements {
 
     private static Optional<DisplayInfo> getDisplay(ClientAdvancement advancement, boolean unlocked) {
         if (!unlocked) {
-            return advancement.display();
+            return advancement.display().filter(display -> !display.isHidden());
         }
 
         return advancement.display().map(display -> ClientProgressManager.unlockedAt(advancement.id())
