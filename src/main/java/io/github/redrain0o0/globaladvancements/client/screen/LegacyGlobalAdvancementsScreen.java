@@ -3,6 +3,7 @@ package io.github.redrain0o0.globaladvancements.client.screen;
 import com.mojang.blaze3d.platform.InputConstants;
 import io.github.redrain0o0.globaladvancements.client.advancements.ClientAdvancementView;
 import net.minecraft.advancements.*;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Tooltip;
@@ -13,7 +14,6 @@ import net.minecraft.client.multiplayer.ClientAdvancements;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.phys.Vec2;
-import wily.factoryapi.FactoryAPI;
 import wily.factoryapi.base.Stocker;
 import wily.factoryapi.base.client.FactoryGuiGraphics;
 import wily.factoryapi.util.FactoryScreenUtil;
@@ -32,14 +32,12 @@ import wily.legacy.util.client.LegacyRenderUtil;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.stream.StreamSupport;
 
 import static wily.legacy.client.screen.ControlTooltip.CONTROL_PAGE;
 import static wily.legacy.client.screen.ControlTooltip.EXTRA;
 
 public class LegacyGlobalAdvancementsScreen extends PanelVListScreen implements TabList.Access {
     public static final Component TITLE = Component.translatable("gui.advancements");
-    public static final List<Identifier> vanillaOrder = List.of(FactoryAPI.createVanillaLocation("story/root"), FactoryAPI.createVanillaLocation("adventure/root"), FactoryAPI.createVanillaLocation("husbandry/root"), FactoryAPI.createVanillaLocation("nether/root"), FactoryAPI.createVanillaLocation("end/root"));
     private final ClientAdvancementView advancements = ClientAdvancementView.create();
     protected final Stocker.Sizeable page = new Stocker.Sizeable(0);
     protected final TabList tabList = new TabList(accessor, new PagedList<>(page, this::getMaxTabCount));
@@ -51,7 +49,7 @@ public class LegacyGlobalAdvancementsScreen extends PanelVListScreen implements 
     public LegacyGlobalAdvancementsScreen(Screen parent) {
         super(parent, s -> Panel.createPanel(s, p -> p.centeredLeftPos(s), p -> p.centeredTopPos(s) + (0), 450, 252), TITLE);
         renderableVLists.clear();
-        StreamSupport.stream(getActualAdvancements().roots().spliterator(), false).sorted(Comparator.comparingInt(n -> vanillaOrder.contains(n.holder().id()) ? vanillaOrder.indexOf(n.holder().id()) : Integer.MAX_VALUE)).forEach(a -> {
+        getActualAdvancements().roots().forEach(a -> {
             DisplayInfo displayInfo = a.advancement().display().orElse(null);
             if (displayInfo == null) return;
 
@@ -77,6 +75,13 @@ public class LegacyGlobalAdvancementsScreen extends PanelVListScreen implements 
 
     public static Screen getActualAdvancementsScreenInstance(Screen parent) {
         return LegacyOptions.legacyAdvancements.get() ? new LegacyGlobalAdvancementsScreen(parent) : new GlobalAdvancementsScreen(parent);
+    }
+
+    public static void refreshIfOpen() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.screen instanceof LegacyGlobalAdvancementsScreen screen) {
+            minecraft.setScreen(new LegacyGlobalAdvancementsScreen(screen.parent));
+        }
     }
 
     public AdvancementTree getActualAdvancements() {

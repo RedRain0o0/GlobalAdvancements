@@ -42,9 +42,8 @@ public class GlobalAdvancementsScreen extends AdvancementsScreen {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.screen instanceof GlobalAdvancementsScreen screen) {
             minecraft.setScreen(new GlobalAdvancementsScreen(screen.lastScreen));
-        } else if (FabricLoader.getInstance().isModLoaded("legacy")
-                && minecraft.screen instanceof LegacyGlobalAdvancementsScreen screen) {
-            minecraft.setScreen(new LegacyGlobalAdvancementsScreen(screen.parent));
+        } else if (FabricLoader.getInstance().isModLoaded("legacy")) {
+            LegacyGlobalAdvancementsScreen.refreshIfOpen();
         }
     }
 

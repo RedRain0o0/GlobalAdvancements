@@ -21,6 +21,7 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -29,10 +30,18 @@ import java.util.Optional;
 import java.util.Set;
 
 public class ClientAdvancementView extends ClientAdvancements {
+    private static final List<Identifier> TAB_ORDER = List.of(
+            Identifier.withDefaultNamespace("story/root"),
+            Identifier.withDefaultNamespace("adventure/root"),
+            Identifier.withDefaultNamespace("husbandry/root"),
+            Identifier.withDefaultNamespace("nether/root"),
+            Identifier.withDefaultNamespace("end/root")
+    );
     private static final DateTimeFormatter UNLOCK_TIME_FORMAT = DateTimeFormatter
             .ofLocalizedDateTime(FormatStyle.MEDIUM)
             .withLocale(Locale.getDefault())
             .withZone(ZoneId.systemDefault());
+    private static @Nullable Identifier selectedTabId;
 
     private ClientAdvancementView(Minecraft minecraft) {
         super(minecraft, new WorldSessionTelemetryManager(TelemetryEventSender.DISABLED, false, null, null));
@@ -61,11 +70,18 @@ public class ClientAdvancementView extends ClientAdvancements {
             progress.put(advancement.id(), advancementProgress);
         }
 
+        holders.sort(Comparator.comparingInt(holder -> {
+            int index = TAB_ORDER.indexOf(holder.id());
+            return index < 0 ? TAB_ORDER.size() : index;
+        }));
         view.update(new ClientboundUpdateAdvancementsPacket(true, holders, Set.of(), progress, false));
         for (AdvancementNode root : view.getTree().roots()) {
             if (root.advancement().display().isPresent()) {
                 TreeNodePosition.run(root);
             }
+        }
+        if (selectedTabId != null) {
+            view.setSelectedTab(view.get(selectedTabId), false);
         }
         return view;
     }
@@ -116,6 +132,7 @@ public class ClientAdvancementView extends ClientAdvancements {
 
     @Override
     public void setSelectedTab(@Nullable AdvancementHolder selectedTab, boolean tellServer) {
+        selectedTabId = selectedTab == null ? null : selectedTab.id();
         super.setSelectedTab(selectedTab, false);
     }
 }
