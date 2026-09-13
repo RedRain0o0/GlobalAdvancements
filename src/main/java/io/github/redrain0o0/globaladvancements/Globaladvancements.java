@@ -39,7 +39,6 @@ public class Globaladvancements implements ModInitializer {
     public static final AttachmentType<Boolean> HAS_MOD = AttachmentRegistry.create(createId("has_mod"));
 
     public static boolean confirmThatIWantToCreateOrJoinTheWorldEvenThoughIHaveCheatsEnabled = false; // i like doing stupidly long variable names for no reason :3c
-    public static SelectWorldScreen selectWorldScreen; // i need the screen instance in a static method
 
     @Override
     public void onInitialize() {

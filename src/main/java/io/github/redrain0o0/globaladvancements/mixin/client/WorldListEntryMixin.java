@@ -3,6 +3,7 @@ package io.github.redrain0o0.globaladvancements.mixin.client;
 import io.github.redrain0o0.globaladvancements.Globaladvancements;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ConfirmScreen;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.worldselection.WorldSelectionList;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
@@ -23,6 +24,10 @@ public abstract class WorldListEntryMixin {
     @Shadow
     public abstract void joinWorld();
 
+    @Shadow
+    @Final
+    private Screen screen;
+
     @Inject(method = "joinWorld", at = @At("HEAD"), cancellable = true)
     private void gadva$advancementPopup(CallbackInfo ci) {
         boolean isCreative = this.summary.getGameMode() == GameType.CREATIVE;
@@ -33,7 +38,7 @@ public abstract class WorldListEntryMixin {
                 if (result) {
                     Globaladvancements.confirmThatIWantToCreateOrJoinTheWorldEvenThoughIHaveCheatsEnabled = true;
                     this.joinWorld();
-                } else this.minecraft.setScreen(Globaladvancements.selectWorldScreen); // TODO: Fix missing icons
+                } else this.minecraft.setScreen(this.screen); // TODO: Fix missing icons
                 Globaladvancements.LOGGER.info("TEST5");
             }, Component.translatable("gui.globaladvancements.createWorld"), Component.translatable(isCreative ? "gui.globaladvancements.creativeMode" : "gui.globaladvancements.cheats"), CommonComponents.GUI_OK, CommonComponents.GUI_CANCEL));
         }

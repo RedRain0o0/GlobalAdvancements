@@ -22,7 +22,6 @@
     "client.ClientPacketListenerMixin",
     "client.CreateWorldScreenMixin",
     "client.LegacyTitleScreenMixin",
-    "client.SelectWorldScreenMixin",
     "client.TitleScreenMixin",
     "client.WorldListEntryMixin"
   ],
