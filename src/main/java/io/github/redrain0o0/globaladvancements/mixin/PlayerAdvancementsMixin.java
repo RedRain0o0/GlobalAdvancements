@@ -2,6 +2,7 @@ package io.github.redrain0o0.globaladvancements.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import io.github.redrain0o0.globaladvancements.Globaladvancements;
+import io.github.redrain0o0.globaladvancements.world.WorldCheats;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.PlayerAdvancements;
@@ -21,6 +22,7 @@ public class PlayerAdvancementsMixin {
 
     @Inject(method = "award", at = @At("HEAD"))
     private void gadva$criterion(AdvancementHolder holder, String criterion, CallbackInfoReturnable<Boolean> cir) {
+        if (WorldCheats.isCheated(this.player.level().getServer().getWorldData())) return;
         if (!this.player.getAttachedOrElse(Globaladvancements.HAS_MOD, false)) return;
         if (Globaladvancements.criterion.get(player.getUUID()) == null) { // Player Not Accounted
             Map<Identifier, List<String>> advancement = new HashMap<>();
