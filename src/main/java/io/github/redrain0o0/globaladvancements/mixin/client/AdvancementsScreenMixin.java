@@ -1,5 +1,6 @@
 package io.github.redrain0o0.globaladvancements.mixin.client;
 
+import io.github.redrain0o0.globaladvancements.client.GlobaladvancementsClient;
 import io.github.redrain0o0.globaladvancements.client.advancements.ClientAdvancementManager;
 import io.github.redrain0o0.globaladvancements.client.screen.GlobalAdvancementsScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -23,6 +24,7 @@ public abstract class AdvancementsScreenMixin extends Screen {
 
     @Inject(method = "init", at = @At("HEAD"), cancellable = true)
     private void gadva$init(CallbackInfo ci) {
+        if (!GlobaladvancementsClient.serverHasMod()) return;
         if ((Object) this instanceof GlobalAdvancementsScreen || ClientAdvancementManager.size() == 0) {
             return;
         }
