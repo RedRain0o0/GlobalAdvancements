@@ -10,9 +10,11 @@
   "mixins": [
     "FurnaceResultSlotMixin",
     "ItemEntityMixin",
+    "LevelSettingsMixin",
     "LivingEntityMixin",
     "PlayerAdvancementsMixin",
     "PortalLightingItemMixin",
+    "PrimaryLevelDataMixin",
     "ResultSlotMixin",
     "TamableAnimalMixin"
   ],
@@ -23,7 +25,9 @@
     "client.ClientAdvancementsMixin",
     "client.ClientPacketListenerMixin",
     "client.CreateWorldScreenMixin",
+    "client.IntegratedServerMixin",
     "client.LegacyAdvancementsScreenMixin",
+    "client.LegacyLevelSettingsMixin",
     "client.LegacyTitleScreenMixin",
     "client.ShareToLanScreenMixin",
     "client.TitleScreenMixin",

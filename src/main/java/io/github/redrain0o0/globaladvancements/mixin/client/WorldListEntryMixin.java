@@ -1,6 +1,7 @@
 package io.github.redrain0o0.globaladvancements.mixin.client;
 
 import io.github.redrain0o0.globaladvancements.Globaladvancements;
+import io.github.redrain0o0.globaladvancements.world.WorldCheats;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -31,7 +32,7 @@ public abstract class WorldListEntryMixin {
     @Inject(method = "joinWorld", at = @At("HEAD"), cancellable = true)
     private void gadva$advancementPopup(CallbackInfo ci) {
         boolean isCreative = this.summary.getGameMode() == GameType.CREATIVE;
-        if ((!Globaladvancements.confirmThatIWantToCreateOrJoinTheWorldEvenThoughIHaveCheatsEnabled) && (this.summary.hasCommands() || isCreative)) {
+        if ((!Globaladvancements.confirmThatIWantToCreateOrJoinTheWorldEvenThoughIHaveCheatsEnabled) && WorldCheats.isCheated(this.summary)) {
             ci.cancel();
 
             this.minecraft.setScreen(new ConfirmScreen((result) -> {
