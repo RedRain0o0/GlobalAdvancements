@@ -39,9 +39,8 @@ public abstract class WorldListEntryMixin {
                 if (result) {
                     Globaladvancements.confirmThatIWantToCreateOrJoinTheWorldEvenThoughIHaveCheatsEnabled = true;
                     this.joinWorld();
-                } else this.minecraft.setScreen(this.screen); // TODO: Fix missing icons
-                Globaladvancements.LOGGER.info("TEST5");
-            }, Component.translatable("gui.globaladvancements.createWorld"), Component.translatable(isCreative ? "gui.globaladvancements.creativeMode" : "gui.globaladvancements.cheats"), CommonComponents.GUI_OK, CommonComponents.GUI_CANCEL));
+                } else this.minecraft.setScreen(this.screen);
+            }, Component.translatable("gui.globaladvancements.createWorld"), Component.translatable(isCreative ? "gui.globaladvancements.creativeMode" : this.summary.hasCommands() ? "gui.globaladvancements.cheats" : "gui.globaladvancements.priorCheats"), CommonComponents.GUI_OK, CommonComponents.GUI_CANCEL));
         }
     }
 

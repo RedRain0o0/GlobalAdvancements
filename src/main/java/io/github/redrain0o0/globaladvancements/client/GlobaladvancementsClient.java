@@ -69,6 +69,10 @@ public class GlobaladvancementsClient implements ClientModInitializer {
         }
     }
 
+    public static boolean serverHasMod() {
+        return serverHasMod;
+    }
+
     private enum GACFile {
         ADVANCEMENTS_FILE("/advancements.json"),
         CONFIG_FILE("/config/globaladvancements.json");
