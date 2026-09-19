@@ -28,6 +28,7 @@
     "client.IntegratedServerMixin",
     "client.LegacyAdvancementsScreenMixin",
     "client.LegacyLevelSettingsMixin",
+    "client.LegacyMinecraftMixin",
     "client.LegacyTitleScreenMixin",
     "client.ShareToLanScreenMixin",
     "client.TitleScreenMixin",
