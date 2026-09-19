@@ -27,8 +27,10 @@
     "client.CreateWorldScreenMixin",
     "client.IntegratedServerMixin",
     "client.LegacyAdvancementsScreenMixin",
+    "client.LegacyCreateWorldScreenMixin",
     "client.LegacyLevelSettingsMixin",
     "client.LegacyTitleScreenMixin",
+    "client.LoadSaveScreenMixin",
     "client.ShareToLanScreenMixin",
     "client.TitleScreenMixin",
     "client.WorldListEntryMixin"

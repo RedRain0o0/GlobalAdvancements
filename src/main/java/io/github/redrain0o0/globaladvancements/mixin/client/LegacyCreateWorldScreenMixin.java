@@ -1,11 +1,9 @@
 package io.github.redrain0o0.globaladvancements.mixin.client;
 
 import io.github.redrain0o0.globaladvancements.Globaladvancements;
-import net.minecraft.client.gui.screens.ConfirmScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.worldselection.CreateWorldScreen;
 import net.minecraft.client.gui.screens.worldselection.WorldCreationUiState;
-import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -13,9 +11,10 @@ import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import wily.legacy.client.screen.ConfirmationScreen;
 
 @Mixin(CreateWorldScreen.class)
-public abstract class CreateWorldScreenMixin extends Screen {
+public abstract class LegacyCreateWorldScreenMixin extends Screen {
     @Shadow
     public abstract void onCreate();
 
@@ -23,7 +22,7 @@ public abstract class CreateWorldScreenMixin extends Screen {
     @Final
     private WorldCreationUiState uiState;
 
-    protected CreateWorldScreenMixin(Component title) {
+    protected LegacyCreateWorldScreenMixin(Component title) {
         super(title);
     }
 
@@ -32,12 +31,10 @@ public abstract class CreateWorldScreenMixin extends Screen {
         boolean isCreative = this.uiState.getGameMode() == WorldCreationUiState.SelectedGameMode.CREATIVE;
         if ((!Globaladvancements.confirmThatIWantToCreateOrJoinTheWorldEvenThoughIHaveCheatsEnabled) && (this.uiState.isAllowCommands() || isCreative)) {
             ci.cancel();
-            this.minecraft.setScreen(new ConfirmScreen((result) -> {
-                if (result) {
-                    Globaladvancements.confirmThatIWantToCreateOrJoinTheWorldEvenThoughIHaveCheatsEnabled = true;
-                    this.onCreate();
-                } else this.minecraft.setScreen(this);
-            }, Component.translatable("gui.globaladvancements.createWorld"), Component.translatable(isCreative ? "gui.globaladvancements.creativeMode" : "gui.globaladvancements.cheats"), CommonComponents.GUI_OK, CommonComponents.GUI_CANCEL));
+            this.minecraft.setScreen(new ConfirmationScreen(this, Component.translatable("gui.globaladvancements.startGame"), Component.translatable(isCreative ? "gui.globaladvancements.creativeMode" : "gui.globaladvancements.cheats"), (_) -> {
+                Globaladvancements.confirmThatIWantToCreateOrJoinTheWorldEvenThoughIHaveCheatsEnabled = true;
+                this.onCreate();
+            }));
         }
     }
 
